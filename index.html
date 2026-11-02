@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d2227">
+<title>Carnet d'atelier</title>
+<style>
+:root{
+  --ink:#1d2227; --bench:#eceeed; --card:#fbfbfa; --line:#d3d8d6; --muted:#5b666c;
+  --gold:#b98a2e; --gold-hi:#ecd183; --silver:#7f8c97; --silver-hi:#dde3e8;
+  --red:#b0382c; --green:#2a7655; --amber:#8a5a00;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bench);color:var(--ink);font:16px/1.4 system-ui,Roboto,"Segoe UI",sans-serif;padding-bottom:110px}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+/* En-tête */
+.top{background:var(--ink);color:#fff;padding:14px 16px 18px;padding-top:max(14px,env(safe-area-inset-top))}
+.top-row{display:flex;justify-content:space-between;align-items:center}
+.top h1{margin:0;font:600 18px/1.2 Georgia,"Times New Roman",serif;letter-spacing:.2px}
+.icon{width:48px;height:48px;border:0;border-radius:12px;background:#ffffff14;color:#fff;font-size:26px;line-height:1}
+.due{margin:10px 0 0;display:flex;align-items:baseline;gap:10px}
+.due span{font:600 30px/1 Georgia,serif;font-variant-numeric:tabular-nums}
+.due small{color:#b9c2c7;font-size:14px}
+
+main{padding:14px 14px 0;max-width:640px;margin:0 auto}
+#q{width:100%;min-height:48px;padding:0 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+.tabs{display:flex;gap:8px;overflow-x:auto;margin:12px -14px;padding:0 14px 4px;scrollbar-width:none}
+.tabs button{flex:none;min-height:44px;padding:0 16px;border:1.5px solid var(--line);border-radius:22px;background:#fff;color:var(--ink)}
+.tabs button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+
+/* Fiches */
+.card{display:block;width:100%;text-align:left;margin:0 0 10px;padding:14px;border:1.5px solid var(--line);border-radius:12px;background:var(--card)}
+.card:active{background:#f1f1ee}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.nom{font:600 18px/1.2 Georgia,serif}
+.lib{margin:6px 0 10px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.meta{display:flex;gap:14px;margin-top:8px;font-size:13px;color:var(--muted)}
+.badge{flex:none;padding:3px 10px;border-radius:12px;font-size:13px;font-weight:600;background:#e4e8e6;color:var(--muted)}
+.badge.soon{background:#f6e7c1;color:var(--amber)}
+.badge.late{background:#f4d6d2;color:var(--red)}
+.badge.ok{background:#d3ebdf;color:var(--green)}
+.metal{display:inline-block;padding:4px 12px;border-radius:6px;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;color:#2a1f05;box-shadow:inset 0 1px 0 #ffffff99,inset 0 -2px 0 #0000001f}
+.metal.or{background:linear-gradient(135deg,var(--gold-hi),var(--gold) 55%,#d6ac4d)}
+.metal.argent{background:linear-gradient(135deg,#f4f7f9,var(--silver-hi) 40%,#aeb9c2);color:#232b31}
+.pay{font-weight:700;font-variant-numeric:tabular-nums}
+.pay.due{color:var(--red)} .pay.paid{color:var(--green)}
+.empty{padding:36px 12px;text-align:center;color:var(--muted)}
+
+/* Boutons */
+.btn{display:block;width:100%;min-height:52px;margin:0 0 10px;padding:0 16px;border:1.5px solid var(--ink);border-radius:12px;background:#fff;font-weight:600}
+.btn.primary{background:var(--ink);color:#fff}
+.btn.wa{background:#1f8f55;border-color:#1f8f55;color:#fff}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.fab{position:fixed;left:14px;right:14px;bottom:max(14px,env(safe-area-inset-bottom));max-width:612px;margin:0 auto;min-height:56px;border:0;border-radius:14px;background:var(--gold);color:#1d1503;font-weight:700;font-size:17px;box-shadow:0 6px 18px #0000003a}
+
+/* Panneaux plein écran */
+.sheet{position:fixed;inset:0;z-index:20;background:var(--bench);overflow-y:auto}
+.sheet-bar{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--ink);color:#fff}
+.sheet-bar h2{margin:0;font:600 17px/1.2 Georgia,serif}
+.sheet-body{max-width:640px;margin:0 auto;padding:16px 14px 40px}
+
+/* Formulaire */
+label.f{display:block;margin:0 0 16px;font-weight:600}
+label.f>span{display:block;margin-bottom:6px}
+.in{width:100%;min-height:50px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:400}
+textarea.in{min-height:92px;resize:vertical}
+.seg{display:flex;gap:8px;margin-bottom:16px}
+.seg label{flex:1;position:relative}
+.seg input{position:absolute;opacity:0;inset:0}
+.seg span{display:flex;align-items:center;justify-content:center;min-height:50px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:600}
+.seg input:checked+span{background:var(--ink);border-color:var(--ink);color:#fff}
+.seg input:focus-visible+span{outline:3px solid var(--gold);outline-offset:2px}
+.seg.metal-seg input[value=or]:checked+span{background:linear-gradient(135deg,var(--gold-hi),var(--gold));border-color:var(--gold);color:#2a1f05}
+.seg.metal-seg input[value=argent]:checked+span{background:linear-gradient(135deg,#f4f7f9,#aeb9c2);border-color:var(--silver);color:#232b31}
+.group-title{margin:0 0 6px;font-weight:600}
+.reste-line{display:flex;justify-content:space-between;padding:12px 14px;margin-bottom:16px;border-radius:10px;background:#e2e6e4;font-weight:700}
+.reste-line output{font-variant-numeric:tabular-nums}
+
+/* Détail */
+dl.det{margin:0 0 18px;border:1.5px solid var(--line);border-radius:12px;background:var(--card)}
+dl.det div{display:flex;justify-content:space-between;gap:16px;padding:11px 14px;border-bottom:1px solid var(--line)}
+dl.det div:last-child{border-bottom:0}
+dl.det dt{color:var(--muted)} dl.det dd{margin:0;text-align:right;font-weight:600;overflow-wrap:anywhere}
+
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:40;max-width:86%;padding:12px 18px;border-radius:10px;background:var(--ink);color:#fff;font-size:15px;box-shadow:0 6px 18px #0000004a}
+@media (prefers-reduced-motion:no-preference){.toast{animation:in .18s ease-out}@keyframes in{from{opacity:0;transform:translate(-50%,8px)}}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-row">
+    <h1>Carnet d'atelier</h1>
+    <button class="icon" id="btnMenu" aria-label="Sauvegarde et restauration">⋯</button>
+  </div>
+  <p class="due"><span id="dueAmount">0 Ar</span><small>à encaisser</small></p>
+</header>
+
+<main>
+  <input id="q" class="in" type="search" placeholder="Chercher un client, un numéro, un travail" aria-label="Rechercher">
+  <nav class="tabs" id="tabs" aria-label="Filtrer par statut"></nav>
+  <section id="list"></section>
+</main>
+
+<button class="fab" id="btnNew">+ Nouvelle fiche</button>
+
+<!-- Formulaire -->
+<div class="sheet" id="sheetForm" hidden>
+  <div class="sheet-bar">
+    <button class="icon" data-back aria-label="Retour">←</button>
+    <h2 id="formTitle">Nouvelle fiche</h2>
+  </div>
+  <form class="sheet-body" id="form" autocomplete="off">
+    <p class="group-title">Type de travail</p>
+    <div class="seg">
+      <label><input type="radio" name="type" value="commande" checked><span>Commande</span></label>
+      <label><input type="radio" name="type" value="transformation"><span>Transformation</span></label>
+    </div>
+
+    <label class="f"><span>Nom du client</span><input class="in" id="fNom" required></label>
+    <label class="f"><span>Numéro du client (WhatsApp)</span><input class="in" id="fTel" type="tel" inputmode="tel" placeholder="034 00 000 00"></label>
+
+    <p class="group-title">Métal</p>
+    <div class="seg metal-seg">
+      <label><input type="radio" name="metal" value="or" checked><span>Or</span></label>
+      <label><input type="radio" name="metal" value="argent"><span>Argent</span></label>
+    </div>
+
+    <label class="f"><span>Poids (grammes)</span><input class="in" id="fPoids" type="number" inputmode="decimal" step="0.01" min="0" required></label>
+    <label class="f"><span>Travail à faire</span><textarea class="in" id="fLibelle" required placeholder="Ex. bague en or 18 carats, taille 52, avec gravure"></textarea></label>
+
+    <label class="f"><span>Montant total (Ar)</span><input class="in" id="fTotal" type="number" inputmode="numeric" min="0" step="any" required></label>
+
+    <p class="group-title">Paiement</p>
+    <div class="seg">
+      <label><input type="radio" name="pay" value="avance" checked><span>Avance</span></label>
+      <label><input type="radio" name="pay" value="tout"><span>Tout payé</span></label>
+    </div>
+    <label class="f" id="avanceWrap"><span>Avance reçue (Ar)</span><input class="in" id="fAvance" type="number" inputmode="numeric" min="0" step="any"></label>
+    <div class="reste-line"><span>Reste à payer</span><output id="fReste">0 Ar</output></div>
+
+    <label class="f"><span>Date de livraison</span><input class="in" id="fDate" type="date" required></label>
+
+    <button class="btn primary" type="submit">Enregistrer la fiche</button>
+  </form>
+</div>
+
+<!-- Détail -->
+<div class="sheet" id="sheetDetail" hidden>
+  <div class="sheet-bar">
+    <button class="icon" data-back aria-label="Retour">←</button>
+    <h2>Fiche de travail</h2>
+  </div>
+  <div class="sheet-body" id="detailBody"></div>
+</div>
+
+<!-- Sauvegarde -->
+<div class="sheet" id="sheetBackup" hidden>
+  <div class="sheet-bar">
+    <button class="icon" data-back aria-label="Retour">←</button>
+    <h2>Sauvegarde</h2>
+  </div>
+  <div class="sheet-body">
+    <p>Les fiches sont enregistrées dans ce téléphone. Fais une sauvegarde de temps en temps et garde le fichier ailleurs (WhatsApp, Drive, ordinateur).</p>
+    <button class="btn primary" id="btnExport">Enregistrer une sauvegarde</button>
+    <button class="btn" id="btnImport">Restaurer depuis un fichier</button>
+    <input type="file" id="fileImport" accept=".json,application/json" hidden>
+    <p id="backupInfo" style="color:var(--muted)"></p>
+  </div>
+</div>
+
+<script>
+/* ---------- Réglages ---------- */
+const COUNTRY_CODE = '261';            // indicatif ajouté aux numéros qui commencent par 0
+const STORAGE_KEY  = 'carnet-atelier-v1';
+
+/* ---------- Outils ---------- */
+const $ = s => document.querySelector(s);
+const p2 = n => String(n).padStart(2,'0');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ar = n => Math.round(n || 0).toLocaleString('fr-FR') + ' Ar';
+const gr = n => (+n).toLocaleString('fr-FR',{maximumFractionDigits:2}) + ' g';
+const reste = f => Math.max(0, f.total - f.avance);
+const day0 = iso => { const d = iso ? new Date(iso + 'T00:00') : new Date(); d.setHours(0,0,0,0); return d; };
+const daysTo = iso => Math.round((day0(iso) - day0()) / 864e5);
+const fdate = iso => day0(iso).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+const isoDate = (add = 0) => { const d = new Date(); d.setDate(d.getDate() + add); return d.getFullYear() + '-' + p2(d.getMonth()+1) + '-' + p2(d.getDate()); };
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const TYPES = { commande:'Commande', transformation:'Transformation' };
+const STATUTS = { encours:'En cours', pret:'Prêt', livre:'Livré' };
+
+let toastTimer;
+function toast(msg){
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; t.setAttribute('role','status');
+  document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 2600);
+}
+
+/* ---------- Données ---------- */
+let fiches = [];
+try { fiches = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { fiches = []; }
+function persist(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fiches)); }
+  catch(e) { toast("Enregistrement impossible : espace insuffisant"); }
+}
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+
+/* ---------- Liste ---------- */
+let filter = 'encours', currentId = null;
+
+function badgeFor(f){
+  if (f.statut === 'livre') return '';
+  if (f.statut === 'pret') return '<span class="badge ok">Prêt</span>';
+  const d = daysTo(f.date);
+  if (d < 0)  return `<span class="badge late">En retard de ${-d} j</span>`;
+  if (d === 0) return '<span class="badge soon">Aujourd’hui</span>';
+  if (d === 1) return '<span class="badge soon">Demain</span>';
+  return `<span class="badge">Dans ${d} j</span>`;
+}
+
+function cardHTML(f){
+  const r = reste(f);
+  return `<button class="card" data-id="${f.id}">
+    <div class="row"><strong class="nom">${esc(f.nom)}</strong>${badgeFor(f)}</div>
+    <p class="lib">${esc(f.libelle)}</p>
+    <div class="row">
+      <span class="metal ${f.metal}">${f.metal === 'or' ? 'Or' : 'Argent'} ${gr(f.poids)}</span>
+      <span class="pay ${r ? 'due' : 'paid'}">${r ? 'Reste ' + ar(r) : 'Payé'}</span>
+    </div>
+    <div class="meta"><span>${TYPES[f.type]}</span><span>Livraison le ${day0(f.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span></div>
+  </button>`;
+}
+
+function render(){
+  const q = $('#q').value.trim().toLowerCase();
+  const tabs = [['encours','En cours'],['pret','Prêts'],['livre','Livrés'],['tous','Tous']];
+  $('#tabs').innerHTML = tabs.map(([k,l]) => {
+    const n = k === 'tous' ? fiches.length : fiches.filter(f => f.statut === k).length;
+    return `<button data-tab="${k}" aria-pressed="${filter === k}">${l} (${n})</button>`;
+  }).join('');
+
+  const list = fiches
+    .filter(f => filter === 'tous' || f.statut === filter)
+    .filter(f => !q || [f.nom, f.tel, f.libelle].join(' ').toLowerCase().includes(q))
+    .sort((a,b) => (a.statut === 'livre') - (b.statut === 'livre') || a.date.localeCompare(b.date));
+
+  $('#list').innerHTML = list.length
+    ? list.map(cardHTML).join('')
+    : `<p class="empty">${fiches.length ? 'Aucune fiche ne correspond.' : 'Aucune fiche pour le moment. Appuie sur « Nouvelle fiche » pour commencer.'}</p>`;
+
+  $('#dueAmount').textContent = ar(fiches.reduce((s,f) => s + reste(f), 0));
+}
+
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b){ filter = b.dataset.tab; render(); } });
+$('#q').addEventListener('input', render);
+$('#list').addEventListener('click', e => { const c = e.target.closest('[data-id]'); if (c) openDetail(c.dataset.id); });
+
+/* ---------- Panneaux (le bouton Retour d'Android les ferme) ---------- */
+const stack = [];
+function openSheet(id){ $(id).hidden = false; $(id).scrollTop = 0; stack.push(id); history.pushState({sheet:id}, ''); }
+function closeTop(){ if (stack.length) history.back(); }
+window.addEventListener('popstate', () => { if (stack.length) $(stack.pop()).hidden = true; });
+document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', closeTop));
+
+/* ---------- Formulaire ---------- */
+const radio = (name, v) => { document.querySelector(`input[name=${name}][value=${v}]`).checked = true; };
+const radioVal = name => document.querySelector(`input[name=${name}]:checked`).value;
+
+function updateReste(){
+  const total = +$('#fTotal').value || 0;
+  const full = radioVal('pay') === 'tout';
+  $('#avanceWrap').hidden = full;
+  const av = full ? total : Math.min(total, +$('#fAvance').value || 0);
+  $('#fReste').textContent = ar(total - av);
+}
+['#fTotal','#fAvance'].forEach(s => $(s).addEventListener('input', updateReste));
+document.querySelectorAll('input[name=pay]').forEach(r => r.addEventListener('change', updateReste));
+
+function openForm(id){
+  const f = id ? fiches.find(x => x.id === id) : null;
+  $('#form').reset();
+  $('#form').dataset.id = f ? f.id : '';
+  $('#formTitle').textContent = f ? 'Modifier la fiche' : 'Nouvelle fiche';
+  if (f){
+    radio('type', f.type); radio('metal', f.metal);
+    $('#fNom').value = f.nom; $('#fTel').value = f.tel; $('#fPoids').value = f.poids;
+    $('#fLibelle').value = f.libelle; $('#fTotal').value = f.total;
+    radio('pay', f.avance >= f.total && f.total > 0 ? 'tout' : 'avance');
+    $('#fAvance').value = f.avance; $('#fDate').value = f.date;
+  } else {
+    $('#fDate').value = isoDate(7);
+  }
+  updateReste();
+  openSheet('#sheetForm');
+}
+
+$('#btnNew').addEventListener('click', () => openForm());
+
+$('#form').addEventListener('submit', e => {
+  e.preventDefault();
+  const total = +$('#fTotal').value || 0;
+  const full = radioVal('pay') === 'tout';
+  const avance = full ? total : Math.min(total, +$('#fAvance').value || 0);
+  const id = $('#form').dataset.id;
+  const data = {
+    type: radioVal('type'), metal: radioVal('metal'),
+    nom: $('#fNom').value.trim(), tel: $('#fTel').value.trim(),
+    poids: +$('#fPoids').value || 0, libelle: $('#fLibelle').value.trim(),
+    total, avance, date: $('#fDate').value
+  };
+  if (id){ Object.assign(fiches.find(x => x.id === id), data); }
+  else { fiches.push({ id: newId(), statut: 'encours', creeLe: isoDate(), ...data }); }
+  persist(); render(); closeTop();
+  if (id && stack.includes('#sheetDetail')) openDetail(id, true);
+  toast('Fiche enregistrée');
+});
+
+/* ---------- Détail ---------- */
+function openDetail(id, refreshOnly){
+  const f = fiches.find(x => x.id === id); if (!f) return;
+  currentId = id;
+  const r = reste(f);
+  $('#detailBody').innerHTML = `
+    <dl class="det">
+      <div><dt>Client</dt><dd>${esc(f.nom)}</dd></div>
+      <div><dt>Numéro</dt><dd>${esc(f.tel) || '—'}</dd></div>
+      <div><dt>Type</dt><dd>${TYPES[f.type]}</dd></div>
+      <div><dt>Métal</dt><dd><span class="metal ${f.metal}">${f.metal === 'or' ? 'Or' : 'Argent'} ${gr(f.poids)}</span></dd></div>
+      <div><dt>Travail</dt><dd>${esc(f.libelle)}</dd></div>
+      <div><dt>Montant total</dt><dd>${ar(f.total)}</dd></div>
+      <div><dt>Avance reçue</dt><dd>${ar(f.avance)}</dd></div>
+      <div><dt>Reste à payer</dt><dd class="pay ${r ? 'due' : 'paid'}">${r ? ar(r) : 'Tout est payé'}</dd></div>
+      <div><dt>Livraison</dt><dd>${fdate(f.date)}</dd></div>
+      <div><dt>Statut</dt><dd>${STATUTS[f.statut]}</dd></div>
+    </dl>
+    <button class="btn wa" data-act="wa">Envoyer sur WhatsApp</button>
+    ${r ? '<button class="btn primary" data-act="pay">Ajouter un versement</button>' : ''}
+    ${f.statut === 'encours' ? '<button class="btn" data-act="pret">Marquer comme prêt</button>' : ''}
+    ${f.statut !== 'livre' ? '<button class="btn" data-act="livre">Marquer comme livré</button>' : '<button class="btn" data-act="encours">Remettre en cours</button>'}
+    <button class="btn" data-act="edit">Modifier</button>
+    <button class="btn danger" data-act="del">Supprimer</button>`;
+  if (!refreshOnly) openSheet('#sheetDetail');
+}
+
+function waNumber(t){
+  let n = (t || '').replace(/[^\d+]/g, '');
+  if (n.startsWith('+')) return n.slice(1);
+  if (n.startsWith('00')) return n.slice(2);
+  if (n.startsWith('0')) return COUNTRY_CODE + n.slice(1);
+  return n.startsWith(COUNTRY_CODE) ? n : COUNTRY_CODE + n;
+}
+
+function waMessage(f){
+  const r = reste(f);
+  const intro = f.statut === 'pret'
+    ? `Bonjour ${f.nom}, votre ${f.type === 'commande' ? 'bijou' : 'travail de transformation'} est prêt. Vous pouvez passer le récupérer.`
+    : f.statut === 'livre'
+    ? `Bonjour ${f.nom}, merci pour votre confiance. Voici le récapitulatif de votre ${TYPES[f.type].toLowerCase()}.`
+    : `Bonjour ${f.nom}, votre ${TYPES[f.type].toLowerCase()} est bien enregistrée.`;
+  return [
+    intro, '',
+    `Travail : ${f.libelle}`,
+    `Métal : ${f.metal === 'or' ? 'Or' : 'Argent'}, ${gr(f.poids)}`,
+    `Montant total : ${ar(f.total)}`,
+    `Avance versée : ${ar(f.avance)}`,
+    r ? `Reste à payer : ${ar(r)}` : 'Paiement complet reçu.',
+    `Livraison prévue : ${fdate(f.date)}`
+  ].join('\n');
+}
+
+$('#detailBody').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const f = fiches.find(x => x.id === currentId); if (!f) return;
+  const act = b.dataset.act;
+  if (act === 'wa'){
+    if (!f.tel) return toast("Ajoute d'abord le numéro du client");
+    window.open(`https://wa.me/${waNumber(f.tel)}?text=${encodeURIComponent(waMessage(f))}`, '_blank');
+  } else if (act === 'pay'){
+    const v = prompt(`Montant du versement (reste : ${ar(reste(f))})`, reste(f));
+    if (v === null) return;
+    const m = Math.round(+String(v).replace(/\s/g,'').replace(',','.'));
+    if (!(m > 0)) return toast('Montant invalide');
+    f.avance = Math.min(f.total, f.avance + m);
+    persist(); render(); openDetail(f.id, true); toast('Versement ajouté');
+  } else if (['pret','livre','encours'].includes(act)){
+    f.statut = act; persist(); render(); openDetail(f.id, true); toast('Statut : ' + STATUTS[act]);
+  } else if (act === 'edit'){
+    openForm(f.id);
+  } else if (act === 'del'){
+    if (confirm(`Supprimer la fiche de ${f.nom} ? Cette action est définitive.`)){
+      fiches = fiches.filter(x => x.id !== f.id); persist(); render(); closeTop(); toast('Fiche supprimée');
+    }
+  }
+});
+
+/* ---------- Sauvegarde ---------- */
+$('#btnMenu').addEventListener('click', () => {
+  $('#backupInfo').textContent = `${fiches.length} fiche(s) enregistrée(s) dans ce téléphone.`;
+  openSheet('#sheetBackup');
+});
+$('#btnExport').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(fiches, null, 1)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'carnet-atelier-' + isoDate() + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Sauvegarde enregistrée dans Téléchargements');
+});
+$('#btnImport').addEventListener('click', () => $('#fileImport').click());
+$('#fileImport').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const data = JSON.parse(rd.result);
+      if (!Array.isArray(data) || data.some(x => !x.id || !x.nom)) throw 0;
+      if (confirm(`Remplacer les fiches actuelles par ${data.length} fiche(s) de la sauvegarde ?`)){
+        fiches = data; persist(); render(); closeTop(); toast('Sauvegarde restaurée');
+      }
+    } catch(err){ toast('Fichier de sauvegarde invalide'); }
+    e.target.value = '';
+  };
+  rd.readAsText(file);
+});
+
+render();
+</script>
+</body>
+</html>
