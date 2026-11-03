@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.tojo_dev.twa",
+        "sha256_cert_fingerprints": ["91:DF:FC:F9:86:9C:EB:BD:08:E7:6E:DC:30:D1:80:6E:C0:B3:CD:FE:18:A4:52:2E:D2:21:4B:38:72:01:D3:BE"]
+      }
+    }]
