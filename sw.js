@@ -1,7 +1,7 @@
 /* Service worker du Carnet d'atelier.
    Change le numéro de VERSION à chaque mise à jour de l'application
    pour que les téléphones récupèrent les nouveaux fichiers. */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'carnet-atelier-' + VERSION;
 const FILES = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
