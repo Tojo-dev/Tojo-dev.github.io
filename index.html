@@ -82,6 +82,9 @@ textarea.in{min-height:92px;resize:vertical}
 .seg.metal-seg input[value=or]:checked+span{background:linear-gradient(135deg,var(--gold-hi),var(--gold));border-color:var(--gold);color:#2a1f05}
 .seg.metal-seg input[value=argent]:checked+span{background:linear-gradient(135deg,#f4f7f9,#aeb9c2);border-color:var(--silver);color:#232b31}
 .group-title{margin:0 0 6px;font-weight:600}
+.banner{margin:0 0 12px;padding:14px 14px 6px;border:1.5px solid var(--gold);border-radius:12px;background:#fbf3df}
+.banner p{margin:0 0 10px;font-weight:600}
+.banner .btn{margin:0 0 8px}
 details.calc{margin:0 0 16px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
 details.calc summary{min-height:50px;display:flex;align-items:center;padding:0 12px;font-weight:600}
 details.calc .calc-body{padding:4px 12px 0}
@@ -110,6 +113,11 @@ dl.det dt{color:var(--muted)} dl.det dd{margin:0;text-align:right;font-weight:60
 </header>
 
 <main>
+  <div class="banner" id="backupBanner" hidden>
+    <p id="bannerText"></p>
+    <button class="btn primary" id="bannerSave">Sauvegarder maintenant</button>
+    <button class="btn" id="bannerLater">Plus tard</button>
+  </div>
   <input id="q" class="in" type="search" placeholder="Chercher un client, un numéro, un travail" aria-label="Rechercher">
   <nav class="tabs" id="tabs" aria-label="Filtrer par statut"></nav>
   <section id="list"></section>
@@ -185,11 +193,25 @@ dl.det dt{color:var(--muted)} dl.det dd{margin:0;text-align:right;font-weight:60
     <h2>Sauvegarde</h2>
   </div>
   <div class="sheet-body">
-    <p>Les fiches sont enregistrées dans ce téléphone. Fais une sauvegarde de temps en temps et garde le fichier ailleurs (WhatsApp, Drive, ordinateur).</p>
-    <button class="btn primary" id="btnExport">Enregistrer une sauvegarde</button>
+    <p>Les fiches sont enregistrées dans ce téléphone. Une sauvegarde est un fichier nommé par mois, par exemple <strong>sauvegarde_novembre_2026.json</strong>, rangé dans les Téléchargements. Garde-en une copie ailleurs (WhatsApp, Drive, ordinateur).</p>
+    <button class="btn primary" id="btnExport">Enregistrer la sauvegarde du mois</button>
+    <button class="btn" id="btnShare">Envoyer la sauvegarde (WhatsApp, Drive…)</button>
     <button class="btn" id="btnImport">Restaurer depuis un fichier</button>
     <input type="file" id="fileImport" accept=".json,application/json" hidden>
     <p id="backupInfo" style="color:var(--muted)"></p>
+    <h3 style="margin:24px 0 6px;font:600 16px Georgia,serif">Copies automatiques</h3>
+    <p class="hint">Chaque mois, l'appli garde toute seule une copie des fiches dans le téléphone (les 3 derniers mois). Elles servent en cas d'erreur de suppression ou de modification.</p>
+    <div id="snapList"></div>
+
+    <h3 style="margin:28px 0 6px;font:600 16px Georgia,serif">Sauvegarde automatique en ligne</h3>
+    <p class="hint">Chaque jour où le téléphone a internet, l'appli envoie une copie dans un dépôt GitHub <strong>privé</strong>, dans le dossier <strong>sauvegardes</strong> (créé automatiquement), avec le fichier du mois : <strong>sauvegardes/sauvegarde_novembre_2026.json</strong>. GitHub garde l'historique des versions.</p>
+    <label class="f"><span>Compte GitHub</span><input class="in" id="ghOwner" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+    <label class="f"><span>Nom du dépôt privé</span><input class="in" id="ghRepo" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="sauvegardes-atelier"></label>
+    <label class="f"><span>Jeton d'accès (token)</span><input class="in" id="ghToken" type="password" autocomplete="off" spellcheck="false"></label>
+    <button class="btn primary" id="ghSave">Enregistrer et tester</button>
+    <button class="btn" id="ghNow" hidden>Sauvegarder en ligne maintenant</button>
+    <button class="btn danger" id="ghOff" hidden>Désactiver la sauvegarde en ligne</button>
+    <p class="hint" id="ghStatus"></p>
   </div>
 </div>
 
@@ -274,6 +296,7 @@ function render(){
     : `<p class="empty">${fiches.length ? 'Aucune fiche ne correspond.' : 'Aucune fiche pour le moment. Appuie sur « Nouvelle fiche » pour commencer.'}</p>`;
 
   $('#dueAmount').textContent = ar(fiches.reduce((s,f) => s + reste(f), 0));
+  updateBanner();
 }
 
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b){ filter = b.dataset.tab; render(); } });
@@ -441,15 +464,147 @@ $('#detailBody').addEventListener('click', e => {
 /* ---------- Sauvegarde ---------- */
 $('#btnMenu').addEventListener('click', () => {
   $('#backupInfo').textContent = `${fiches.length} fiche(s) enregistrée(s) dans ce téléphone.`;
+  renderSnaps();
+  renderGh();
   openSheet('#sheetBackup');
 });
-$('#btnExport').addEventListener('click', () => {
+const MOIS    = ['janvier','fevrier','mars','avril','mai','juin','juillet','aout','septembre','octobre','novembre','decembre'];
+const MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const LAST_KEY = 'carnet-atelier-derniere-sauvegarde';
+const SNAP = 'carnet-atelier-copie-';
+const monthKey = (d = new Date()) => d.getFullYear() + '-' + p2(d.getMonth() + 1);
+const backupName = (d = new Date()) => `sauvegarde_${MOIS[d.getMonth()]}_${d.getFullYear()}.json`;
+let bannerDismissed = false;
+
+function updateBanner(){
+  let last = null; try { last = localStorage.getItem(LAST_KEY); } catch(e) {}
+  const due = fiches.length > 0 && last !== monthKey() && !bannerDismissed;
+  $('#backupBanner').hidden = !due;
+  if (due){ const d = new Date(); $('#bannerText').textContent = `La sauvegarde de ${MOIS_FR[d.getMonth()]} ${d.getFullYear()} n’est pas encore faite.`; }
+}
+function markBackedUp(){ try { localStorage.setItem(LAST_KEY, monthKey()); } catch(e) {} updateBanner(); }
+
+function downloadBackup(){
   const blob = new Blob([JSON.stringify(fiches, null, 1)], {type:'application/json'});
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'carnet-atelier-' + isoDate() + '.json';
+  a.href = URL.createObjectURL(blob); a.download = backupName();
   document.body.appendChild(a); a.click(); a.remove();
-  toast('Sauvegarde enregistrée dans Téléchargements');
+  markBackedUp();
+  toast('Fichier ' + backupName() + ' enregistré dans Téléchargements');
+}
+async function shareBackup(){
+  const file = new File([JSON.stringify(fiches, null, 1)], backupName(), {type:'text/plain'});
+  if (navigator.canShare && navigator.canShare({files:[file]})){
+    try { await navigator.share({files:[file], title:'Sauvegarde carnet d’atelier'}); markBackedUp(); return; }
+    catch(e){ if (e && e.name === 'AbortError') return; }
+  }
+  downloadBackup();
+}
+$('#btnExport').addEventListener('click', downloadBackup);
+$('#btnShare').addEventListener('click', shareBackup);
+$('#bannerSave').addEventListener('click', downloadBackup);
+$('#bannerLater').addEventListener('click', () => { bannerDismissed = true; updateBanner(); });
+
+/* Copie automatique mensuelle, gardée dans l'application (3 derniers mois) */
+function snapshotMonth(){
+  if (!fiches.length) return;
+  try {
+    const key = SNAP + monthKey();
+    if (localStorage.getItem(key) === null) localStorage.setItem(key, JSON.stringify(fiches));
+    Object.keys(localStorage).filter(k => k.startsWith(SNAP)).sort().slice(0, -3).forEach(k => localStorage.removeItem(k));
+  } catch(e) {}
+}
+function renderSnaps(){
+  const keys = Object.keys(localStorage).filter(k => k.startsWith(SNAP)).sort().reverse();
+  $('#snapList').innerHTML = keys.length ? keys.map(k => {
+    const [y, m] = k.slice(SNAP.length).split('-'); let n = 0;
+    try { n = JSON.parse(localStorage.getItem(k)).length; } catch(e) {}
+    return `<button class="btn" data-snap="${k}">Début ${MOIS_FR[+m - 1]} ${y} : ${n} fiche(s), restaurer</button>`;
+  }).join('') : '<p class="hint">Aucune copie pour le moment.</p>';
+}
+$('#snapList').addEventListener('click', e => {
+  const b = e.target.closest('[data-snap]'); if (!b) return;
+  if (!confirm('Remplacer les fiches actuelles par cette copie ? Les modifications faites depuis seront perdues.')) return;
+  try { fiches = JSON.parse(localStorage.getItem(b.dataset.snap)); persist(); render(); closeTop(); toast('Copie restaurée'); }
+  catch(err) { toast('Copie illisible'); }
 });
+/* Sauvegarde en ligne (dépôt GitHub privé) */
+const GH_KEY  = 'carnet-atelier-github';
+const GH_LAST = 'carnet-atelier-github-dernier-envoi';
+const ghCfg = () => { try { return JSON.parse(localStorage.getItem(GH_KEY) || 'null'); } catch(e) { return null; } };
+const ghApi = (c, path) => `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}${path}`;
+const ghHeaders = c => ({ Authorization: 'Bearer ' + c.token, Accept: 'application/vnd.github+json' });
+
+function renderGh(){
+  const c = ghCfg();
+  $('#ghOwner').value = c ? c.owner : '';
+  $('#ghRepo').value = c ? c.repo : '';
+  $('#ghToken').value = '';
+  $('#ghToken').placeholder = c ? '(enregistré : laisse vide pour le garder)' : 'github_pat_…';
+  let last = null; try { last = localStorage.getItem(GH_LAST); } catch(e) {}
+  $('#ghStatus').textContent = c
+    ? (last ? 'Activé. Dernier envoi réussi le ' + last.split('-').reverse().join('/') + '.' : 'Activé. Aucun envoi pour le moment.')
+    : 'Non activé.';
+  $('#ghNow').hidden = !c; $('#ghOff').hidden = !c;
+}
+
+async function pushGithub(manual){
+  const c = ghCfg();
+  if (!c || (!fiches.length && !manual)) return;
+  if (!navigator.onLine){ if (manual) toast('Pas de connexion internet'); return; }
+  try {
+    const path = 'sauvegardes/' + backupName();
+    const url = ghApi(c, '/contents/' + path);
+    const r0 = await fetch(url, { headers: ghHeaders(c) });
+    let sha;
+    if (r0.ok) sha = (await r0.json()).sha; else if (r0.status !== 404) throw r0.status;
+    const bytes = new TextEncoder().encode(JSON.stringify(fiches, null, 1));
+    let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+    const r = await fetch(url, {
+      method: 'PUT',
+      headers: { ...ghHeaders(c), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Sauvegarde ' + backupName(), content: btoa(bin), sha })
+    });
+    if (!r.ok) throw r.status;
+    try { localStorage.setItem(GH_LAST, isoDate()); } catch(e) {}
+    markBackedUp(); renderGh();
+    if (manual) toast('Sauvegarde en ligne envoyée');
+  } catch(e) {
+    if (manual) toast(e === 401 || e === 403 ? 'Jeton refusé : vérifie ses droits' : e === 404 ? 'Dépôt introuvable' : 'Envoi impossible pour le moment');
+  }
+}
+function autoPush(){
+  let last = null; try { last = localStorage.getItem(GH_LAST); } catch(e) {}
+  if (ghCfg() && fiches.length && last !== isoDate()) pushGithub(false);
+}
+
+$('#ghSave').addEventListener('click', async () => {
+  const old = ghCfg();
+  const owner = $('#ghOwner').value.trim(), repo = $('#ghRepo').value.trim();
+  const token = $('#ghToken').value.trim() || (old && old.token) || '';
+  if (!owner || !repo || !token) return toast('Remplis les trois champs');
+  const c = { owner, repo, token };
+  try {
+    const r = await fetch(ghApi(c, ''), { headers: ghHeaders(c) });
+    if (r.status === 401) return toast('Jeton invalide');
+    if (r.status === 404) return toast('Dépôt introuvable, ou jeton sans accès à ce dépôt');
+    if (!r.ok) return toast('Test impossible (erreur ' + r.status + ')');
+    const info = await r.json();
+    if (!info.private) return toast('Ce dépôt est public : crée un dépôt privé');
+    if (info.permissions && !info.permissions.push) return toast("Le jeton n'a pas le droit d'écrire");
+    localStorage.setItem(GH_KEY, JSON.stringify(c));
+    renderGh(); toast('Connexion réussie');
+    pushGithub(true);
+  } catch(e) { toast('Pas de connexion internet'); }
+});
+$('#ghNow').addEventListener('click', () => pushGithub(true));
+$('#ghOff').addEventListener('click', () => {
+  if (!confirm('Désactiver la sauvegarde en ligne ? Les fichiers déjà envoyés restent sur GitHub.')) return;
+  localStorage.removeItem(GH_KEY); localStorage.removeItem(GH_LAST); renderGh(); toast('Sauvegarde en ligne désactivée');
+});
+window.addEventListener('online', autoPush);
+
+document.addEventListener('visibilitychange', () => { if (!document.hidden){ snapshotMonth(); updateBanner(); autoPush(); } });
 $('#btnImport').addEventListener('click', () => $('#fileImport').click());
 $('#fileImport').addEventListener('change', e => {
   const file = e.target.files[0]; if (!file) return;
@@ -467,7 +622,9 @@ $('#fileImport').addEventListener('change', e => {
   rd.readAsText(file);
 });
 
+snapshotMonth();
 render();
+autoPush();
 
 /* ---------- Mode hors-ligne (PWA) ---------- */
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
