@@ -98,8 +98,42 @@ dl.det div{display:flex;justify-content:space-between;gap:16px;padding:11px 14px
 dl.det div:last-child{border-bottom:0}
 dl.det dt{color:var(--muted)} dl.det dd{margin:0;text-align:right;font-weight:600;overflow-wrap:anywhere}
 
-.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:40;max-width:86%;padding:12px 18px;border-radius:10px;background:var(--ink);color:#fff;font-size:15px;box-shadow:0 6px 18px #0000004a}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:200;max-width:86%;padding:12px 18px;border-radius:10px;background:var(--ink);color:#fff;font-size:15px;box-shadow:0 6px 18px #0000004a}
 @media (prefers-reduced-motion:no-preference){.toast{animation:in .18s ease-out}@keyframes in{from{opacity:0;transform:translate(-50%,8px)}}}
+
+.top-actions{display:flex;align-items:center;gap:8px}
+.chipbtn{min-height:44px;padding:0 16px;border:0;border-radius:12px;background:#ffffff14;color:#fff;font-weight:600}
+a.btn{display:flex;align-items:center;justify-content:center;text-decoration:none;color:var(--ink)}
+.sec{margin:26px 0 6px;font:600 16px Georgia,serif}
+
+/* Écran de verrouillage */
+.lock{position:fixed;inset:0;z-index:100;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+.lock-box{width:100%;max-width:320px;text-align:center}
+.lock h2{margin:0 0 8px;font:600 24px Georgia,serif}
+.lock p{margin:0 0 20px;min-height:24px;color:#b9c2c7}
+.dots{display:flex;justify-content:center;gap:14px;min-height:16px;margin-bottom:28px}
+.dots i{width:14px;height:14px;border-radius:50%;border:2px solid #b9c2c7}
+.dots i.on{background:var(--gold-hi);border-color:var(--gold-hi)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pad button{min-height:66px;border:0;border-radius:14px;background:#ffffff1a;color:#fff;font-size:26px;font-weight:600}
+.pad button:active{background:#ffffff38}
+.linkbtn{margin-top:18px;min-height:44px;background:none;border:0;color:#b9c2c7;text-decoration:underline}
+
+/* Récupération du code PIN */
+.lock .in{background:#ffffff14;border-color:#ffffff40;color:#fff}
+.lock label.f{display:block;text-align:left;margin:0 0 14px;color:#dfe5e8}
+.lock .btn.primary{background:var(--gold);border-color:var(--gold);color:#1d1503}
+.lock .btn{margin-bottom:6px}
+.rec-code{margin:0 0 20px;padding:18px 8px;border:2px dashed var(--gold-hi);border-radius:12px;color:var(--gold-hi);font:700 27px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:2px;user-select:all}
+
+/* Impression du reçu */
+@media print{
+  body>*:not(#sheetReceipt){display:none!important}
+  body{padding:0;background:#fff}
+  #sheetReceipt{position:static!important;overflow:visible;background:#fff}
+  #sheetReceipt .no-print{display:none!important}
+  #receiptCanvas{width:100%!important;height:auto!important;border:0!important}
+}
 </style>
 </head>
 <body>
@@ -107,7 +141,10 @@ dl.det dt{color:var(--muted)} dl.det dd{margin:0;text-align:right;font-weight:60
 <header class="top">
   <div class="top-row">
     <h1>Carnet d'atelier</h1>
-    <button class="icon" id="btnMenu" aria-label="Sauvegarde et restauration">⋯</button>
+    <div class="top-actions">
+      <button class="chipbtn" id="btnClients">Clients</button>
+      <button class="icon" id="btnMenu" aria-label="Réglages et sauvegarde">⋯</button>
+    </div>
   </div>
   <p class="due"><span id="dueAmount">0 Ar</span><small>à encaisser</small></p>
 </header>
@@ -138,8 +175,10 @@ dl.det dt{color:var(--muted)} dl.det dd{margin:0;text-align:right;font-weight:60
       <label><input type="radio" name="type" value="transformation"><span>Transformation</span></label>
     </div>
 
-    <label class="f"><span>Nom du client</span><input class="in" id="fNom" required></label>
-    <label class="f"><span>Numéro du client (WhatsApp)</span><input class="in" id="fTel" type="tel" inputmode="tel" placeholder="034 00 000 00"></label>
+    <label class="f"><span>Nom du client</span><input class="in" id="fNom" list="dlNoms" required></label>
+    <datalist id="dlNoms"></datalist>
+    <label class="f"><span>Numéro du client (WhatsApp)</span><input class="in" id="fTel" type="tel" inputmode="tel" list="dlTels" placeholder="034 00 000 00"></label>
+    <datalist id="dlTels"></datalist>
 
     <p class="group-title">Métal</p>
     <div class="seg metal-seg">
@@ -190,9 +229,27 @@ dl.det dt{color:var(--muted)} dl.det dd{margin:0;text-align:right;font-weight:60
 <div class="sheet" id="sheetBackup" hidden>
   <div class="sheet-bar">
     <button class="icon" data-back aria-label="Retour">←</button>
-    <h2>Sauvegarde</h2>
+    <h2>Réglages</h2>
   </div>
   <div class="sheet-body">
+    <h3 class="sec" style="margin-top:0">Mon atelier</h3>
+    <p class="hint">Ces informations apparaissent sur les reçus.</p>
+    <label class="f"><span>Nom de l'atelier</span><input class="in" id="regNom" autocomplete="off"></label>
+    <label class="f"><span>Téléphone de l'atelier</span><input class="in" id="regTel" type="tel" inputmode="tel" autocomplete="off"></label>
+    <button class="btn" id="regSave">Enregistrer</button>
+
+    <h3 class="sec">Code PIN</h3>
+    <p class="hint" id="pinStatus"></p>
+    <p class="hint">Le code protège l'accès à l'appli si quelqu'un prend ton téléphone. À l'activation, tu reçois un <strong>code de secours</strong> à noter sur papier : il te permet de choisir un nouveau code PIN si tu oublies l'ancien. Le code PIN lui-même ne peut pas être retrouvé, il n'est jamais conservé en clair.</p>
+    <label class="f" id="pinCurWrap"><span>Code actuel</span><input class="in" id="pinCur" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    <label class="f"><span>Nouveau code (4 à 6 chiffres)</span><input class="in" id="pinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    <label class="f"><span>Confirmer le nouveau code</span><input class="in" id="pinNew2" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    <button class="btn primary" id="pinSet">Activer le code PIN</button>
+    <button class="btn" id="recNewBtn" hidden>Générer un nouveau code de secours</button>
+    <button class="btn danger" id="pinOff" hidden>Désactiver le code PIN</button>
+    <p class="hint" id="recStatus"></p>
+
+    <h3 class="sec">Sauvegarde des fiches</h3>
     <p>Les fiches sont enregistrées dans ce téléphone. Une sauvegarde est un fichier nommé par mois, par exemple <strong>sauvegarde_novembre_2026.json</strong>, rangé dans les Téléchargements. Garde-en une copie ailleurs (WhatsApp, Drive, ordinateur).</p>
     <button class="btn primary" id="btnExport">Enregistrer la sauvegarde du mois</button>
     <button class="btn" id="btnShare">Envoyer la sauvegarde (WhatsApp, Drive…)</button>
@@ -212,6 +269,77 @@ dl.det dt{color:var(--muted)} dl.det dd{margin:0;text-align:right;font-weight:60
     <button class="btn" id="ghNow" hidden>Sauvegarder en ligne maintenant</button>
     <button class="btn danger" id="ghOff" hidden>Désactiver la sauvegarde en ligne</button>
     <p class="hint" id="ghStatus"></p>
+  </div>
+</div>
+
+<!-- Reçu -->
+<div class="sheet" id="sheetReceipt" hidden>
+  <div class="sheet-bar no-print">
+    <button class="icon" data-back aria-label="Retour">←</button>
+    <h2>Reçu</h2>
+  </div>
+  <div class="sheet-body">
+    <canvas id="receiptCanvas" width="800" height="1000" style="width:100%;height:auto;border:1.5px solid var(--line);border-radius:10px;background:#fff"></canvas>
+    <div class="no-print" style="margin-top:14px">
+      <button class="btn wa" id="rcShare">Envoyer le reçu (WhatsApp…)</button>
+      <button class="btn" id="rcSave">Enregistrer l'image</button>
+      <button class="btn" id="rcPrint">Imprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Liste des clients -->
+<div class="sheet" id="sheetClients" hidden>
+  <div class="sheet-bar">
+    <button class="icon" data-back aria-label="Retour">←</button>
+    <h2>Clients</h2>
+  </div>
+  <div class="sheet-body">
+    <input id="qClients" class="in" type="search" placeholder="Chercher un client" aria-label="Chercher un client" style="margin-bottom:12px">
+    <div id="clientsList"></div>
+  </div>
+</div>
+
+<!-- Fiche client -->
+<div class="sheet" id="sheetClient" hidden>
+  <div class="sheet-bar">
+    <button class="icon" data-back aria-label="Retour">←</button>
+    <h2>Fiche client</h2>
+  </div>
+  <div class="sheet-body" id="clientBody"></div>
+</div>
+
+<!-- Verrouillage par code PIN -->
+<div class="lock" id="lock" hidden role="dialog" aria-modal="true" aria-label="Code PIN">
+  <div class="lock-box" id="lockMain">
+    <h2>Carnet d'atelier</h2>
+    <p id="lockMsg" role="status">Entre ton code PIN</p>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="pad" id="pad"></div>
+    <button class="linkbtn" id="lockForgot">Code oublié ?</button>
+  </div>
+  <div class="lock-box" id="lockRec" hidden>
+    <h2>Code de secours</h2>
+    <p id="recMsg" role="status">Entre ton code de secours pour choisir un nouveau code PIN.</p>
+    <label class="f" id="recCodeWrap"><span>Code de secours</span><input class="in" id="recCode" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX"></label>
+    <div id="recNewWrap" hidden>
+      <label class="f"><span>Nouveau code PIN (4 à 6 chiffres)</span><input class="in" id="recNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+      <label class="f"><span>Confirmer le nouveau code</span><input class="in" id="recNew2" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    </div>
+    <button class="btn primary" id="recGo">Continuer</button>
+    <button class="linkbtn" id="recBack">Retour</button>
+  </div>
+</div>
+
+<!-- Affichage du code de secours (une seule fois) -->
+<div class="lock" id="recShow" style="z-index:90" hidden role="dialog" aria-modal="true" aria-label="Code de secours">
+  <div class="lock-box">
+    <h2>Ton code de secours</h2>
+    <p>Note-le sur papier et garde-le en lieu sûr. Il permet de choisir un nouveau code PIN si tu oublies celui-ci. Il ne sera plus jamais affiché.</p>
+    <div class="rec-code" id="recShowCode"></div>
+    <label class="f"><span>Pour confirmer, recopie les 4 derniers caractères</span><input class="in" id="recShowCheck" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="4"></label>
+    <p id="recShowErr" role="status"></p>
+    <button class="btn primary" id="recShowOk">J'ai noté mon code</button>
   </div>
 </div>
 
@@ -252,6 +380,23 @@ function persist(){
 }
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
 
+/* Numéro de fiche (0001, 0002…) */
+const padNum = n => String(n || 0).padStart(4, '0');
+const CNT_KEY = 'carnet-atelier-compteur';
+function migrateNums(){
+  let max = 0; fiches.forEach(f => { if (f.num > max) max = f.num; });
+  let changed = false;
+  fiches.forEach(f => { if (!f.num){ f.num = ++max; changed = true; } });
+  if (changed) persist();
+}
+function nextNum(){
+  let c = 0; try { c = +localStorage.getItem(CNT_KEY) || 0; } catch(e) {}
+  c = Math.max(c, ...fiches.map(f => f.num || 0)) + 1;
+  try { localStorage.setItem(CNT_KEY, c); } catch(e) {}
+  return c;
+}
+migrateNums();
+
 /* ---------- Liste ---------- */
 let filter = 'encours', currentId = null;
 
@@ -274,7 +419,7 @@ function cardHTML(f){
       <span class="metal ${f.metal}">${f.metal === 'or' ? 'Or' : 'Argent'} ${gr(f.poids)}</span>
       <span class="pay ${r ? 'due' : 'paid'}">${r ? 'Reste ' + ar(r) : 'Payé'}</span>
     </div>
-    <div class="meta"><span>${TYPES[f.type]}</span>${f.apport > 0 ? `<span>Apport client ${gr(f.apport)}</span>` : ''}<span>Livraison le ${day0(f.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span></div>
+    <div class="meta"><span>N° ${padNum(f.num)}</span><span>${TYPES[f.type]}</span>${f.apport > 0 ? `<span>Apport client ${gr(f.apport)}</span>` : ''}<span>Livraison le ${day0(f.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span></div>
   </button>`;
 }
 
@@ -288,7 +433,7 @@ function render(){
 
   const list = fiches
     .filter(f => filter === 'tous' || f.statut === filter)
-    .filter(f => !q || [f.nom, f.tel, f.libelle].join(' ').toLowerCase().includes(q))
+    .filter(f => !q || [f.nom, f.tel, f.libelle, padNum(f.num), 'n°' + padNum(f.num)].join(' ').toLowerCase().includes(q))
     .sort((a,b) => (a.statut === 'livre') - (b.statut === 'livre') || a.date.localeCompare(b.date));
 
   $('#list').innerHTML = list.length
@@ -297,6 +442,8 @@ function render(){
 
   $('#dueAmount').textContent = ar(fiches.reduce((s,f) => s + reste(f), 0));
   updateBanner();
+  if (!$('#sheetClients').hidden) renderClients();
+  if (!$('#sheetClient').hidden) renderClient();
 }
 
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b){ filter = b.dataset.tab; render(); } });
@@ -337,7 +484,8 @@ function recalc(fromUser){
 ['#fPoids','#fApport','#fPrixG','#fFacon'].forEach(s => $(s).addEventListener('input', () => recalc(true)));
 document.querySelectorAll('input[name=pay]').forEach(r => r.addEventListener('change', updateReste));
 
-function openForm(id){
+function openForm(id, prefill){
+  fillClientLists();
   const f = id ? fiches.find(x => x.id === id) : null;
   $('#form').reset();
   $('#form').dataset.id = f ? f.id : '';
@@ -353,6 +501,7 @@ function openForm(id){
     $('#calc').open = !!(f.prixG || f.facon);
   } else {
     $('#fDate').value = isoDate(7);
+    if (prefill){ $('#fNom').value = prefill.nom || ''; $('#fTel').value = prefill.tel || ''; }
   }
   recalc(false);
   openSheet('#sheetForm');
@@ -374,7 +523,7 @@ $('#form').addEventListener('submit', e => {
     total, avance, date: $('#fDate').value
   };
   if (id){ Object.assign(fiches.find(x => x.id === id), data); }
-  else { fiches.push({ id: newId(), statut: 'encours', creeLe: isoDate(), ...data }); }
+  else { fiches.push({ id: newId(), num: nextNum(), statut: 'encours', creeLe: isoDate(), ...data }); }
   persist(); render(); closeTop();
   if (id && stack.includes('#sheetDetail')) openDetail(id, true);
   toast('Fiche enregistrée');
@@ -387,6 +536,7 @@ function openDetail(id, refreshOnly){
   const r = reste(f);
   $('#detailBody').innerHTML = `
     <dl class="det">
+      <div><dt>Fiche</dt><dd>N° ${padNum(f.num)}</dd></div>
       <div><dt>Client</dt><dd>${esc(f.nom)}</dd></div>
       <div><dt>Numéro</dt><dd>${esc(f.tel) || '—'}</dd></div>
       <div><dt>Type</dt><dd>${TYPES[f.type]}</dd></div>
@@ -401,9 +551,11 @@ function openDetail(id, refreshOnly){
       <div><dt>Statut</dt><dd>${STATUTS[f.statut]}</dd></div>
     </dl>
     <button class="btn wa" data-act="wa">Envoyer sur WhatsApp</button>
+    <button class="btn" data-act="receipt">Reçu à partager</button>
     ${r ? '<button class="btn primary" data-act="pay">Ajouter un versement</button>' : ''}
     ${f.statut === 'encours' ? '<button class="btn" data-act="pret">Marquer comme prêt</button>' : ''}
     ${f.statut !== 'livre' ? '<button class="btn" data-act="livre">Marquer comme livré</button>' : '<button class="btn" data-act="encours">Remettre en cours</button>'}
+    <button class="btn" data-act="client">Voir la fiche client</button>
     <button class="btn" data-act="edit">Modifier</button>
     <button class="btn danger" data-act="del">Supprimer</button>`;
   if (!refreshOnly) openSheet('#sheetDetail');
@@ -426,6 +578,7 @@ function waMessage(f){
     : `Bonjour ${f.nom}, votre ${TYPES[f.type].toLowerCase()} est bien enregistrée.`;
   return [
     intro, '',
+    `Fiche n° ${padNum(f.num)}`,
     `Travail : ${f.libelle}`,
     `Métal : ${f.metal === 'or' ? 'Or' : 'Argent'}, ${gr(f.poids)}`,
     ...(f.apport > 0 ? [`Métal apporté par vous : ${gr(f.apport)}`, `Métal fourni par l’atelier : ${gr(atelierG(f))}`] : []),
@@ -452,6 +605,10 @@ $('#detailBody').addEventListener('click', e => {
     persist(); render(); openDetail(f.id, true); toast('Versement ajouté');
   } else if (['pret','livre','encours'].includes(act)){
     f.statut = act; persist(); render(); openDetail(f.id, true); toast('Statut : ' + STATUTS[act]);
+  } else if (act === 'receipt'){
+    openReceipt(f.id);
+  } else if (act === 'client'){
+    openClient(clientKey(f));
   } else if (act === 'edit'){
     openForm(f.id);
   } else if (act === 'del'){
@@ -466,6 +623,8 @@ $('#btnMenu').addEventListener('click', () => {
   $('#backupInfo').textContent = `${fiches.length} fiche(s) enregistrée(s) dans ce téléphone.`;
   renderSnaps();
   renderGh();
+  renderReg();
+  renderPinUi();
   openSheet('#sheetBackup');
 });
 const MOIS    = ['janvier','fevrier','mars','avril','mai','juin','juillet','aout','septembre','octobre','novembre','decembre'];
@@ -525,7 +684,7 @@ function renderSnaps(){
 $('#snapList').addEventListener('click', e => {
   const b = e.target.closest('[data-snap]'); if (!b) return;
   if (!confirm('Remplacer les fiches actuelles par cette copie ? Les modifications faites depuis seront perdues.')) return;
-  try { fiches = JSON.parse(localStorage.getItem(b.dataset.snap)); persist(); render(); closeTop(); toast('Copie restaurée'); }
+  try { fiches = JSON.parse(localStorage.getItem(b.dataset.snap)); migrateNums(); persist(); render(); closeTop(); toast('Copie restaurée'); }
   catch(err) { toast('Copie illisible'); }
 });
 /* Sauvegarde en ligne (dépôt GitHub privé) */
@@ -614,7 +773,7 @@ $('#fileImport').addEventListener('change', e => {
       const data = JSON.parse(rd.result);
       if (!Array.isArray(data) || data.some(x => !x.id || !x.nom)) throw 0;
       if (confirm(`Remplacer les fiches actuelles par ${data.length} fiche(s) de la sauvegarde ?`)){
-        fiches = data; persist(); render(); closeTop(); toast('Sauvegarde restaurée');
+        fiches = data; migrateNums(); persist(); render(); closeTop(); toast('Sauvegarde restaurée');
       }
     } catch(err){ toast('Fichier de sauvegarde invalide'); }
     e.target.value = '';
@@ -622,6 +781,367 @@ $('#fileImport').addEventListener('change', e => {
   rd.readAsText(file);
 });
 
+/* ---------- Clients ---------- */
+const digits = t => String(t || '').replace(/\D/g, '');
+const clientKey = f => digits(f.tel).length >= 6 ? 't:' + digits(f.tel).slice(-9) : 'n:' + String(f.nom).trim().toLowerCase();
+let currentClient = null;
+
+function getClients(){
+  const m = new Map();
+  [...fiches].sort((a,b) => (a.creeLe || '').localeCompare(b.creeLe || '') || (a.num || 0) - (b.num || 0)).forEach(f => {
+    const k = clientKey(f); let c = m.get(k);
+    if (!c){ c = { key:k, nom:f.nom, tel:f.tel, fiches:[] }; m.set(k, c); }
+    c.nom = f.nom; if (f.tel) c.tel = f.tel; c.fiches.push(f);
+  });
+  return [...m.values()].map(c => ({
+    ...c,
+    total: c.fiches.reduce((s,f) => s + f.total, 0),
+    avance: c.fiches.reduce((s,f) => s + Math.min(f.avance, f.total), 0),
+    dette: c.fiches.reduce((s,f) => s + reste(f), 0)
+  }));
+}
+
+function renderClients(){
+  const q = $('#qClients').value.trim().toLowerCase();
+  const list = getClients()
+    .filter(c => !q || (c.nom + ' ' + c.tel).toLowerCase().includes(q))
+    .sort((a,b) => b.dette - a.dette || a.nom.localeCompare(b.nom, 'fr'));
+  $('#clientsList').innerHTML = list.length ? list.map(c => `<button class="card" data-client="${esc(c.key)}">
+      <div class="row"><strong class="nom">${esc(c.nom)}</strong><span class="pay ${c.dette ? 'due' : 'paid'}">${c.dette ? 'Doit ' + ar(c.dette) : 'À jour'}</span></div>
+      <div class="meta"><span>${esc(c.tel) || 'Pas de numéro'}</span><span>${c.fiches.length} commande${c.fiches.length > 1 ? 's' : ''}</span></div>
+    </button>`).join('') : '<p class="empty">Aucun client pour le moment.</p>';
+}
+
+function renderClient(){
+  const c = getClients().find(x => x.key === currentClient);
+  if (!c){ $('#clientBody').innerHTML = '<p class="empty">Aucune commande pour ce client.</p>'; return; }
+  const list = [...c.fiches].sort((a,b) => (b.num || 0) - (a.num || 0));
+  const num = c.tel ? waNumber(c.tel) : '';
+  $('#clientBody').innerHTML = `
+    <h3 style="margin:0 0 4px;font:600 26px Georgia,serif">${esc(c.nom)}</h3>
+    <p style="margin:0 0 16px;color:var(--muted)">${esc(c.tel) || 'Pas de numéro'}</p>
+    <dl class="det">
+      <div><dt>Commandes</dt><dd>${list.length}</dd></div>
+      <div><dt>Montant total</dt><dd>${ar(c.total)}</dd></div>
+      <div><dt>Déjà payé</dt><dd>${ar(c.avance)}</dd></div>
+      <div><dt>Reste dû</dt><dd class="pay ${c.dette ? 'due' : 'paid'}">${c.dette ? ar(c.dette) : 'À jour'}</dd></div>
+    </dl>
+    ${num ? `<a class="btn wa" href="https://wa.me/${num}" target="_blank" rel="noopener">Écrire sur WhatsApp</a><a class="btn" href="tel:+${num}">Appeler</a>` : ''}
+    <button class="btn primary" data-cact="new">Nouvelle commande pour ce client</button>
+    <h3 class="sec">Commandes</h3>
+    ${list.map(cardHTML).join('')}`;
+}
+
+function openClient(key){ currentClient = key; renderClient(); openSheet('#sheetClient'); }
+
+$('#btnClients').addEventListener('click', () => { $('#qClients').value = ''; renderClients(); openSheet('#sheetClients'); });
+$('#qClients').addEventListener('input', renderClients);
+$('#clientsList').addEventListener('click', e => { const b = e.target.closest('[data-client]'); if (b) openClient(b.dataset.client); });
+$('#clientBody').addEventListener('click', e => {
+  const card = e.target.closest('[data-id]');
+  if (card) return openDetail(card.dataset.id);
+  if (e.target.closest('[data-cact="new"]')){
+    const c = getClients().find(x => x.key === currentClient);
+    openForm(null, c ? { nom: c.nom, tel: c.tel } : null);
+  }
+});
+
+/* Suggestions de clients dans le formulaire */
+function fillClientLists(){
+  const cs = getClients().sort((a,b) => a.nom.localeCompare(b.nom, 'fr'));
+  $('#dlNoms').innerHTML = cs.map(c => `<option value="${esc(c.nom)}" label="${esc(c.tel)}"></option>`).join('');
+  $('#dlTels').innerHTML = cs.filter(c => c.tel).map(c => `<option value="${esc(c.tel)}" label="${esc(c.nom)}"></option>`).join('');
+}
+$('#fNom').addEventListener('change', () => {
+  if ($('#fTel').value.trim()) return;
+  const n = $('#fNom').value.trim().toLowerCase();
+  const c = getClients().find(x => x.nom.trim().toLowerCase() === n);
+  if (c && c.tel) $('#fTel').value = c.tel;
+});
+$('#fTel').addEventListener('change', () => {
+  if ($('#fNom').value.trim()) return;
+  const d = digits($('#fTel').value).slice(-9); if (d.length < 6) return;
+  const c = getClients().find(x => digits(x.tel).slice(-9) === d);
+  if (c) $('#fNom').value = c.nom;
+});
+
+/* ---------- Reçu ---------- */
+const REG_KEY = 'carnet-atelier-reglages';
+const getReg = () => { try { return JSON.parse(localStorage.getItem(REG_KEY) || '{}'); } catch(e) { return {}; } };
+function renderReg(){ const r = getReg(); $('#regNom').value = r.nom || ''; $('#regTel').value = r.tel || ''; }
+$('#regSave').addEventListener('click', () => {
+  try { localStorage.setItem(REG_KEY, JSON.stringify({ nom: $('#regNom').value.trim(), tel: $('#regTel').value.trim() })); toast('Informations enregistrées'); }
+  catch(e) { toast('Enregistrement impossible'); }
+});
+
+let receiptId = null;
+function drawReceipt(f){
+  const reg = getReg();
+  const W = 800, M = 48, INK = '#1d2227', MUTED = '#5b666c';
+  const SERIF = 'Georgia, "Times New Roman", serif', SANS = 'system-ui, Roboto, "Segoe UI", sans-serif';
+
+  const pass = (ctx, draw) => {
+    const T = (str, x, yy, font, color, align) => { if (!draw) return; ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align || 'left'; ctx.fillText(str, x, yy); };
+    const rule = yy => { if (!draw) return; ctx.strokeStyle = '#d3d8d6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(M, yy); ctx.lineTo(W - M, yy); ctx.stroke(); };
+    const wrap = (str, font, maxW) => {
+      ctx.font = font; const out = [];
+      String(str).split('\n').forEach(par => {
+        let line = '';
+        par.split(' ').forEach(w => { const t = line ? line + ' ' + w : w; if (line && ctx.measureText(t).width > maxW){ out.push(line); line = w; } else line = t; });
+        out.push(line);
+      });
+      return out;
+    };
+    let y;
+
+    if (draw){ ctx.fillStyle = INK; ctx.fillRect(0, 0, W, 140); }
+    T(reg.nom || 'Atelier de bijouterie', M, reg.tel ? 68 : 84, `600 38px ${SERIF}`, '#ffffff');
+    if (reg.tel) T('Tél. ' + reg.tel, M, 110, `22px ${SANS}`, '#b9c2c7');
+
+    y = 200;
+    T('Reçu N° ' + padNum(f.num), M, y, `600 34px ${SERIF}`, INK);
+    T('Émis le ' + new Date().toLocaleDateString('fr-FR'), W - M, y, `22px ${SANS}`, MUTED, 'right');
+    y += 26; rule(y); y += 46;
+
+    T('CLIENT', M, y, `600 17px ${SANS}`, MUTED); y += 40;
+    T(f.nom, M, y, `600 30px ${SERIF}`, INK); y += 36;
+    if (f.tel){ T(f.tel, M, y, `22px ${SANS}`, MUTED); y += 32; }
+    y += 24;
+
+    T(f.type === 'commande' ? 'COMMANDE' : 'TRANSFORMATION', M, y, `600 17px ${SANS}`, MUTED); y += 38;
+    wrap(f.libelle, `24px ${SANS}`, W - 2 * M).forEach(l => { T(l, M, y, `24px ${SANS}`, INK); y += 34; });
+    y += 16;
+
+    const label = (f.metal === 'or' ? 'Or' : 'Argent') + '   ' + gr(f.poids);
+    ctx.font = `700 24px ${SANS}`;
+    const cw = ctx.measureText(label).width + 40;
+    if (draw){
+      const g = ctx.createLinearGradient(M, y, M + cw, y + 48);
+      if (f.metal === 'or'){ g.addColorStop(0, '#ecd183'); g.addColorStop(.55, '#b98a2e'); g.addColorStop(1, '#d6ac4d'); }
+      else { g.addColorStop(0, '#f4f7f9'); g.addColorStop(.4, '#dde3e8'); g.addColorStop(1, '#aeb9c2'); }
+      ctx.fillStyle = g; ctx.fillRect(M, y, cw, 48);
+    }
+    T(label, M + 20, y + 33, `700 24px ${SANS}`, '#2a1f05');
+    y += 48 + 26;
+    if (f.apport > 0){
+      T('Apporté par le client : ' + gr(f.apport), M, y, `22px ${SANS}`, MUTED); y += 32;
+      T('Fourni par l’atelier : ' + gr(atelierG(f)), M, y, `22px ${SANS}`, MUTED); y += 32;
+    }
+    y += 12; rule(y); y += 50;
+
+    const row = (l, v, big, color) => {
+      T(l, M, y, `${big ? '600 ' : ''}${big ? 28 : 24}px ${SANS}`, INK);
+      T(v, W - M, y, `700 ${big ? 32 : 26}px ${SANS}`, color || INK, 'right');
+      y += big ? 54 : 46;
+    };
+    const r = reste(f);
+    row('Montant total', ar(f.total));
+    row('Avance versée', ar(f.avance));
+    row(r ? 'Reste à payer' : 'Solde', r ? ar(r) : 'PAYÉ', true, r ? '#b0382c' : '#2a7655');
+    y += 4; rule(y); y += 46;
+
+    T(f.statut === 'livre' ? 'LIVRÉ' : 'LIVRAISON PRÉVUE', M, y, `600 17px ${SANS}`, MUTED); y += 38;
+    T(fdate(f.date), M, y, `600 26px ${SERIF}`, INK); y += 52;
+    rule(y); y += 52;
+    T('Merci de votre confiance.', W / 2, y, `italic 24px ${SERIF}`, MUTED, 'center');
+    y += 56;
+    return y;
+  };
+
+  const H = pass(document.createElement('canvas').getContext('2d'), false);
+  const cv = $('#receiptCanvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+  pass(ctx, true);
+}
+
+function openReceipt(id){
+  const f = fiches.find(x => x.id === id); if (!f) return;
+  receiptId = id; drawReceipt(f); openSheet('#sheetReceipt');
+}
+const slug = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 24) || 'client';
+const receiptName = f => `recu_${padNum(f.num)}_${slug(f.nom)}.png`;
+const receiptBlob = () => new Promise(res => $('#receiptCanvas').toBlob(res, 'image/png'));
+function saveBlob(blob, name){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+$('#rcShare').addEventListener('click', async () => {
+  const f = fiches.find(x => x.id === receiptId); if (!f) return;
+  const blob = await receiptBlob(); if (!blob) return toast('Impossible de créer le reçu');
+  const file = new File([blob], receiptName(f), { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })){
+    try { await navigator.share({ files: [file], title: 'Reçu N° ' + padNum(f.num) }); return; }
+    catch(e){ if (e && e.name === 'AbortError') return; }
+  }
+  saveBlob(blob, file.name); toast('Image enregistrée dans Téléchargements');
+});
+$('#rcSave').addEventListener('click', async () => {
+  const f = fiches.find(x => x.id === receiptId); if (!f) return;
+  const blob = await receiptBlob(); if (!blob) return toast('Impossible de créer le reçu');
+  saveBlob(blob, receiptName(f)); toast('Image enregistrée dans Téléchargements');
+});
+$('#rcPrint').addEventListener('click', () => window.print());
+
+/* ---------- Code PIN ---------- */
+const PIN_KEY = 'carnet-atelier-pin', PIN_FAIL = 'carnet-atelier-pin-essais', LOCK_DELAY = 60000;
+const pinCfg = () => { try { return JSON.parse(localStorage.getItem(PIN_KEY) || 'null'); } catch(e) { return null; } };
+async function hashPin(pin, salt){
+  const data = new TextEncoder().encode(salt + ':' + pin);
+  if (window.crypto && crypto.subtle){
+    const h = await crypto.subtle.digest('SHA-256', data);
+    return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  let h = 5381; data.forEach(b => { h = ((h << 5) + h + b) | 0; }); return 'x' + h;
+}
+let entry = '', hiddenAt = 0, recStage = 1, recShowCurrent = '';
+const lockables = () => document.querySelectorAll('header.top, main, .fab, .sheet');
+function renderDots(){
+  const c = pinCfg(), n = c ? c.len : 4;
+  $('#dots').innerHTML = Array.from({ length: n }, (_, i) => `<i class="${i < entry.length ? 'on' : ''}"></i>`).join('');
+}
+function showLock(msg){
+  if (!pinCfg()) return;
+  entry = ''; renderDots(); resetRecoveryUi();
+  $('#lockMsg').textContent = msg || 'Entre ton code PIN';
+  $('#lock').hidden = false; lockables().forEach(el => { el.inert = true; });
+}
+function hideLock(){ $('#lock').hidden = true; lockables().forEach(el => { el.inert = false; }); entry = ''; }
+const failState = () => { try { return JSON.parse(localStorage.getItem(PIN_FAIL) || '{"n":0,"until":0}'); } catch(e) { return { n:0, until:0 }; } };
+function registerFail(){
+  const s = failState(); s.n++; if (s.n % 5 === 0) s.until = Date.now() + 30000;
+  try { localStorage.setItem(PIN_FAIL, JSON.stringify(s)); } catch(e) {}
+  return s;
+}
+
+$('#pad').innerHTML = ['1','2','3','4','5','6','7','8','9','','0','⌫']
+  .map(k => k === '' ? '<span></span>' : `<button type="button" data-k="${k}" aria-label="${k === '⌫' ? 'Effacer' : k}">${k}</button>`).join('');
+$('#pad').addEventListener('click', async e => {
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  const c = pinCfg(); if (!c) return hideLock();
+  const st = failState();
+  if (st.until > Date.now()){ $('#lockMsg').textContent = 'Trop d’essais. Réessaie dans ' + Math.ceil((st.until - Date.now()) / 1000) + ' s'; return; }
+  const k = b.dataset.k;
+  if (k === '⌫'){ entry = entry.slice(0, -1); renderDots(); return; }
+  if (entry.length >= c.len) return;
+  entry += k; renderDots();
+  if (entry.length === c.len){
+    const h = await hashPin(entry, c.salt);
+    if (h === c.hash){ try { localStorage.removeItem(PIN_FAIL); } catch(err) {} hideLock(); }
+    else {
+      const s = registerFail(); entry = ''; renderDots();
+      $('#lockMsg').textContent = s.until > Date.now() ? 'Trop d’essais. Attends 30 secondes.' : 'Code incorrect';
+    }
+  }
+});
+/* ----- Code de secours ----- */
+const REC_ALPHA = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';       // sans 0, 1, O, I pour éviter les confusions
+const normRec = t => String(t || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const newSalt = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+function makeRecovery(){
+  const a = new Uint8Array(12); crypto.getRandomValues(a);
+  const c = [...a].map(b => REC_ALPHA[b % 32]);
+  return c.slice(0, 4).join('') + '-' + c.slice(4, 8).join('') + '-' + c.slice(8).join('');
+}
+function resetRecoveryUi(){
+  recStage = 1;
+  $('#lockMain').hidden = false; $('#lockRec').hidden = true;
+  $('#recCodeWrap').hidden = false; $('#recNewWrap').hidden = true;
+  ['#recCode', '#recNew', '#recNew2'].forEach(s => { $(s).value = ''; });
+  $('#recGo').textContent = 'Continuer';
+  $('#recMsg').textContent = 'Entre ton code de secours pour choisir un nouveau code PIN.';
+}
+function showRecovery(code){
+  recShowCurrent = code;
+  $('#recShowCode').textContent = code; $('#recShowCheck').value = ''; $('#recShowErr').textContent = '';
+  $('#recShow').hidden = false;
+}
+$('#recShowOk').addEventListener('click', () => {
+  if (normRec($('#recShowCheck').value) !== recShowCurrent.replace(/-/g, '').slice(-4)){
+    $('#recShowErr').textContent = 'Recopie les 4 derniers caractères du code pour continuer.'; return;
+  }
+  $('#recShow').hidden = true; recShowCurrent = ''; renderPinUi();
+});
+
+$('#lockForgot').addEventListener('click', () => {
+  const c = pinCfg();
+  if (c && c.rhash){ $('#lockMain').hidden = true; $('#lockRec').hidden = false; return; }
+  alert("Aucun code de secours n'avait été créé. Pour repartir de zéro, efface les données du site dans Chrome (Paramètres, Paramètres des sites, Stockage), puis restaure ta dernière sauvegarde.");
+});
+$('#recBack').addEventListener('click', () => { resetRecoveryUi(); entry = ''; renderDots(); });
+$('#recGo').addEventListener('click', async () => {
+  const c = pinCfg(); if (!c || !c.rhash) return;
+  if (recStage === 1){
+    const st = failState();
+    if (st.until > Date.now()){ $('#recMsg').textContent = 'Trop d’essais. Réessaie dans ' + Math.ceil((st.until - Date.now()) / 1000) + ' s'; return; }
+    if (await hashPin(normRec($('#recCode').value), c.rsalt) !== c.rhash){
+      const s2 = registerFail();
+      $('#recMsg').textContent = s2.until > Date.now() ? 'Trop d’essais. Attends 30 secondes.' : 'Code de secours incorrect.';
+      return;
+    }
+    recStage = 2;
+    $('#recCodeWrap').hidden = true; $('#recNewWrap').hidden = false;
+    $('#recMsg').textContent = 'Code accepté. Choisis un nouveau code PIN (4 à 6 chiffres).';
+    $('#recGo').textContent = 'Enregistrer le nouveau code';
+    return;
+  }
+  const n = $('#recNew').value.trim();
+  if (!/^\d{4,6}$/.test(n)){ $('#recMsg').textContent = 'Le code doit avoir 4 à 6 chiffres.'; return; }
+  if (n !== $('#recNew2').value.trim()){ $('#recMsg').textContent = 'Les deux codes sont différents.'; return; }
+  const salt = newSalt(), rsalt = newSalt(), code = makeRecovery();
+  const cfg = { salt, hash: await hashPin(n, salt), len: n.length, rsalt, rhash: await hashPin(normRec(code), rsalt) };
+  try { localStorage.setItem(PIN_KEY, JSON.stringify(cfg)); localStorage.removeItem(PIN_FAIL); }
+  catch(e) { $('#recMsg').textContent = 'Enregistrement impossible.'; return; }
+  resetRecoveryUi(); hideLock();
+  showRecovery(code);                       // l'ancien code de secours est consommé : un nouveau est affiché
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){ hiddenAt = Date.now(); }
+  else if (pinCfg() && hiddenAt && Date.now() - hiddenAt > LOCK_DELAY){ showLock(); }
+});
+
+function renderPinUi(){
+  const c = pinCfg();
+  $('#pinStatus').textContent = c ? 'Code PIN activé (' + c.len + ' chiffres).' : 'Code PIN non activé.';
+  $('#recStatus').textContent = c ? (c.rhash ? 'Code de secours : en place.' : 'Code de secours : pas encore créé. Génères-en un maintenant.') : '';
+  $('#pinCurWrap').hidden = !c; $('#pinOff').hidden = !c; $('#recNewBtn').hidden = !c;
+  $('#pinSet').textContent = c ? 'Changer le code PIN' : 'Activer le code PIN';
+  ['#pinCur', '#pinNew', '#pinNew2'].forEach(s => { $(s).value = ''; });
+}
+$('#pinSet').addEventListener('click', async () => {
+  const c = pinCfg();
+  if (c && await hashPin($('#pinCur').value.trim(), c.salt) !== c.hash) return toast('Code actuel incorrect');
+  const n = $('#pinNew').value.trim();
+  if (!/^\d{4,6}$/.test(n)) return toast('Le code doit avoir 4 à 6 chiffres');
+  if (n !== $('#pinNew2').value.trim()) return toast('Les deux codes sont différents');
+  const salt = newSalt();
+  const cfg = { salt, hash: await hashPin(n, salt), len: n.length };
+  let code = null;
+  if (c && c.rhash){ cfg.rsalt = c.rsalt; cfg.rhash = c.rhash; }          // on garde le code de secours existant
+  else { code = makeRecovery(); cfg.rsalt = newSalt(); cfg.rhash = await hashPin(normRec(code), cfg.rsalt); }
+  try { localStorage.setItem(PIN_KEY, JSON.stringify(cfg)); localStorage.removeItem(PIN_FAIL); }
+  catch(e) { return toast('Enregistrement impossible'); }
+  renderPinUi(); toast('Code PIN enregistré');
+  if (code) showRecovery(code);
+});
+$('#recNewBtn').addEventListener('click', async () => {
+  const c = pinCfg(); if (!c) return;
+  if (await hashPin($('#pinCur').value.trim(), c.salt) !== c.hash) return toast('Entre ton code actuel pour générer un nouveau code de secours');
+  const code = makeRecovery(), rsalt = newSalt();
+  try { localStorage.setItem(PIN_KEY, JSON.stringify({ ...c, rsalt, rhash: await hashPin(normRec(code), rsalt) })); }
+  catch(e) { return toast('Enregistrement impossible'); }
+  renderPinUi(); showRecovery(code);
+});
+$('#pinOff').addEventListener('click', async () => {
+  const c = pinCfg(); if (!c) return;
+  if (await hashPin($('#pinCur').value.trim(), c.salt) !== c.hash) return toast('Code actuel incorrect');
+  localStorage.removeItem(PIN_KEY); localStorage.removeItem(PIN_FAIL);
+  renderPinUi(); toast('Code PIN désactivé');
+});
+
+if (pinCfg()) showLock();
 snapshotMonth();
 render();
 autoPush();
