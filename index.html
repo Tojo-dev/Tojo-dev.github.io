@@ -43,7 +43,7 @@ main{padding:14px 14px 0;max-width:640px;margin:0 auto}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .nom{font:600 18px/1.2 Georgia,serif}
 .lib{margin:6px 0 10px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.meta{display:flex;gap:14px;margin-top:8px;font-size:13px;color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:13px;color:var(--muted)}
 .badge{flex:none;padding:3px 10px;border-radius:12px;font-size:13px;font-weight:600;background:#e4e8e6;color:var(--muted)}
 .badge.soon{background:#f6e7c1;color:var(--amber)}
 .badge.late{background:#f4d6d2;color:var(--red)}
@@ -82,6 +82,10 @@ textarea.in{min-height:92px;resize:vertical}
 .seg.metal-seg input[value=or]:checked+span{background:linear-gradient(135deg,var(--gold-hi),var(--gold));border-color:var(--gold);color:#2a1f05}
 .seg.metal-seg input[value=argent]:checked+span{background:linear-gradient(135deg,#f4f7f9,#aeb9c2);border-color:var(--silver);color:#232b31}
 .group-title{margin:0 0 6px;font-weight:600}
+details.calc{margin:0 0 16px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+details.calc summary{min-height:50px;display:flex;align-items:center;padding:0 12px;font-weight:600}
+details.calc .calc-body{padding:4px 12px 0}
+.hint{margin:0 0 14px;font-size:13px;color:var(--muted);font-weight:400}
 .reste-line{display:flex;justify-content:space-between;padding:12px 14px;margin-bottom:16px;border-radius:10px;background:#e2e6e4;font-weight:700}
 .reste-line output{font-variant-numeric:tabular-nums}
 
@@ -135,8 +139,19 @@ dl.det dt{color:var(--muted)} dl.det dd{margin:0;text-align:right;font-weight:60
       <label><input type="radio" name="metal" value="argent"><span>Argent</span></label>
     </div>
 
-    <label class="f"><span>Poids (grammes)</span><input class="in" id="fPoids" type="number" inputmode="decimal" step="0.01" min="0" required></label>
+    <label class="f"><span>Poids total du bijou (grammes)</span><input class="in" id="fPoids" type="number" inputmode="decimal" step="0.01" min="0" required></label>
+    <label class="f"><span>Métal apporté par le client (grammes)</span><input class="in" id="fApport" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0"></label>
+    <div class="reste-line"><span>Métal fourni par l'atelier</span><output id="fAtelier">0 g</output></div>
     <label class="f"><span>Travail à faire</span><textarea class="in" id="fLibelle" required placeholder="Ex. bague en or 18 carats, taille 52, avec gravure"></textarea></label>
+
+    <details class="calc" id="calc">
+      <summary>Calculer le prix (facultatif)</summary>
+      <div class="calc-body">
+        <p class="hint">Si tu remplis le prix du gramme, le montant total se calcule : grammes fournis par l'atelier × prix du gramme + façon. Tu peux toujours corriger le montant ensuite.</p>
+        <label class="f"><span>Prix du métal par gramme (Ar)</span><input class="in" id="fPrixG" type="number" inputmode="numeric" min="0" step="any"></label>
+        <label class="f"><span>Façon / main-d'œuvre (Ar)</span><input class="in" id="fFacon" type="number" inputmode="numeric" min="0" step="any"></label>
+      </div>
+    </details>
 
     <label class="f"><span>Montant total (Ar)</span><input class="in" id="fTotal" type="number" inputmode="numeric" min="0" step="any" required></label>
 
@@ -190,6 +205,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const ar = n => Math.round(n || 0).toLocaleString('fr-FR') + ' Ar';
 const gr = n => (+n).toLocaleString('fr-FR',{maximumFractionDigits:2}) + ' g';
 const reste = f => Math.max(0, f.total - f.avance);
+const atelierG = f => Math.max(0, f.poids - (f.apport || 0));
 const day0 = iso => { const d = iso ? new Date(iso + 'T00:00') : new Date(); d.setHours(0,0,0,0); return d; };
 const daysTo = iso => Math.round((day0(iso) - day0()) / 864e5);
 const fdate = iso => day0(iso).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
@@ -236,7 +252,7 @@ function cardHTML(f){
       <span class="metal ${f.metal}">${f.metal === 'or' ? 'Or' : 'Argent'} ${gr(f.poids)}</span>
       <span class="pay ${r ? 'due' : 'paid'}">${r ? 'Reste ' + ar(r) : 'Payé'}</span>
     </div>
-    <div class="meta"><span>${TYPES[f.type]}</span><span>Livraison le ${day0(f.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span></div>
+    <div class="meta"><span>${TYPES[f.type]}</span>${f.apport > 0 ? `<span>Apport client ${gr(f.apport)}</span>` : ''}<span>Livraison le ${day0(f.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span></div>
   </button>`;
 }
 
@@ -283,12 +299,26 @@ function updateReste(){
   $('#fReste').textContent = ar(total - av);
 }
 ['#fTotal','#fAvance'].forEach(s => $(s).addEventListener('input', updateReste));
+
+function recalc(fromUser){
+  const poids = +$('#fPoids').value || 0;
+  const apport = Math.min(poids, +$('#fApport').value || 0);
+  const atelier = poids - apport;
+  $('#fAtelier').textContent = gr(atelier);
+  const prixG = +$('#fPrixG').value || 0;
+  if (fromUser && prixG > 0){
+    $('#fTotal').value = Math.round(atelier * prixG + (+$('#fFacon').value || 0));
+  }
+  updateReste();
+}
+['#fPoids','#fApport','#fPrixG','#fFacon'].forEach(s => $(s).addEventListener('input', () => recalc(true)));
 document.querySelectorAll('input[name=pay]').forEach(r => r.addEventListener('change', updateReste));
 
 function openForm(id){
   const f = id ? fiches.find(x => x.id === id) : null;
   $('#form').reset();
   $('#form').dataset.id = f ? f.id : '';
+  $('#calc').open = false;
   $('#formTitle').textContent = f ? 'Modifier la fiche' : 'Nouvelle fiche';
   if (f){
     radio('type', f.type); radio('metal', f.metal);
@@ -296,10 +326,12 @@ function openForm(id){
     $('#fLibelle').value = f.libelle; $('#fTotal').value = f.total;
     radio('pay', f.avance >= f.total && f.total > 0 ? 'tout' : 'avance');
     $('#fAvance').value = f.avance; $('#fDate').value = f.date;
+    $('#fApport').value = f.apport || ''; $('#fPrixG').value = f.prixG || ''; $('#fFacon').value = f.facon || '';
+    $('#calc').open = !!(f.prixG || f.facon);
   } else {
     $('#fDate').value = isoDate(7);
   }
-  updateReste();
+  recalc(false);
   openSheet('#sheetForm');
 }
 
@@ -314,7 +346,8 @@ $('#form').addEventListener('submit', e => {
   const data = {
     type: radioVal('type'), metal: radioVal('metal'),
     nom: $('#fNom').value.trim(), tel: $('#fTel').value.trim(),
-    poids: +$('#fPoids').value || 0, libelle: $('#fLibelle').value.trim(),
+    poids: +$('#fPoids').value || 0, apport: Math.min(+$('#fPoids').value || 0, +$('#fApport').value || 0),
+    prixG: +$('#fPrixG').value || 0, facon: +$('#fFacon').value || 0, libelle: $('#fLibelle').value.trim(),
     total, avance, date: $('#fDate').value
   };
   if (id){ Object.assign(fiches.find(x => x.id === id), data); }
@@ -335,6 +368,8 @@ function openDetail(id, refreshOnly){
       <div><dt>Numéro</dt><dd>${esc(f.tel) || '—'}</dd></div>
       <div><dt>Type</dt><dd>${TYPES[f.type]}</dd></div>
       <div><dt>Métal</dt><dd><span class="metal ${f.metal}">${f.metal === 'or' ? 'Or' : 'Argent'} ${gr(f.poids)}</span></dd></div>
+      ${f.apport > 0 ? `<div><dt>Apporté par le client</dt><dd>${gr(f.apport)}</dd></div><div><dt>Fourni par l’atelier</dt><dd>${gr(atelierG(f))}</dd></div>` : ''}
+      ${f.prixG > 0 ? `<div><dt>Détail du prix</dt><dd>${gr(atelierG(f))} × ${ar(f.prixG)} + façon ${ar(f.facon)}</dd></div>` : ''}
       <div><dt>Travail</dt><dd>${esc(f.libelle)}</dd></div>
       <div><dt>Montant total</dt><dd>${ar(f.total)}</dd></div>
       <div><dt>Avance reçue</dt><dd>${ar(f.avance)}</dd></div>
@@ -370,6 +405,7 @@ function waMessage(f){
     intro, '',
     `Travail : ${f.libelle}`,
     `Métal : ${f.metal === 'or' ? 'Or' : 'Argent'}, ${gr(f.poids)}`,
+    ...(f.apport > 0 ? [`Métal apporté par vous : ${gr(f.apport)}`, `Métal fourni par l’atelier : ${gr(atelierG(f))}`] : []),
     `Montant total : ${ar(f.total)}`,
     `Avance versée : ${ar(f.avance)}`,
     r ? `Reste à payer : ${ar(r)}` : 'Paiement complet reçu.',
