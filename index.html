@@ -266,7 +266,7 @@ $('#list').addEventListener('click', e => { const c = e.target.closest('[data-id
 
 /* ---------- Panneaux (le bouton Retour d'Android les ferme) ---------- */
 const stack = [];
-function openSheet(id){ $(id).hidden = false; $(id).scrollTop = 0; stack.push(id); history.pushState({sheet:id}, ''); }
+function openSheet(id){ const el = $(id); el.style.zIndex = 20 + stack.length + 1; el.hidden = false; el.scrollTop = 0; stack.push(id); history.pushState({sheet:id}, ''); }
 function closeTop(){ if (stack.length) history.back(); }
 window.addEventListener('popstate', () => { if (stack.length) $(stack.pop()).hidden = true; });
 document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', closeTop));
