@@ -240,7 +240,7 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
 
     <h3 class="sec">Code PIN</h3>
     <p class="hint" id="pinStatus"></p>
-    <p class="hint">Le code protège l'accès à l'appli si quelqu'un prend ton téléphone. À l'activation, tu reçois un <strong>code de secours</strong> à noter sur papier : il te permet de choisir un nouveau code PIN si tu oublies l'ancien. Le code PIN lui-même ne peut pas être retrouvé, il n'est jamais conservé en clair.</p>
+    <p class="hint">Le code protège l'accès à l'appli si quelqu'un prend ton téléphone. Elle se verrouille après un moment sans toucher l'écran, et quand tu la réduis. Elle ne se verrouille pas quand tu pars vers WhatsApp, le téléphone ou le partage depuis l'appli, ni quand tu actualises la page. À l'activation, tu reçois un <strong>code de secours</strong> à noter sur papier : il te permet de choisir un nouveau code PIN si tu oublies l'ancien. Le code PIN lui-même ne peut pas être retrouvé, il n'est jamais conservé en clair.</p>
     <label class="f" id="pinCurWrap"><span>Code actuel</span><input class="in" id="pinCur" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
     <label class="f"><span>Nouveau code (4 à 6 chiffres)</span><input class="in" id="pinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
     <label class="f"><span>Confirmer le nouveau code</span><input class="in" id="pinNew2" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
@@ -248,6 +248,14 @@ a.btn{display:flex;align-items:center;justify-content:center;text-decoration:non
     <button class="btn" id="recNewBtn" hidden>Générer un nouveau code de secours</button>
     <button class="btn danger" id="pinOff" hidden>Désactiver le code PIN</button>
     <p class="hint" id="recStatus"></p>
+    <label class="f" id="lockDelayWrap" hidden><span>Verrouiller après une inactivité de</span>
+      <select class="in" id="lockDelay">
+        <option value="30000">30 secondes</option>
+        <option value="60000">1 minute</option>
+        <option value="120000">2 minutes</option>
+        <option value="300000">5 minutes</option>
+      </select>
+    </label>
 
     <h3 class="sec">Sauvegarde des fiches</h3>
     <p>Les fiches sont enregistrées dans ce téléphone. Une sauvegarde est un fichier nommé par mois, par exemple <strong>sauvegarde_novembre_2026.json</strong>, rangé dans les Téléchargements. Garde-en une copie ailleurs (WhatsApp, Drive, ordinateur).</p>
@@ -595,6 +603,7 @@ $('#detailBody').addEventListener('click', e => {
   const act = b.dataset.act;
   if (act === 'wa'){
     if (!f.tel) return toast("Ajoute d'abord le numéro du client");
+    markExternal();
     window.open(`https://wa.me/${waNumber(f.tel)}?text=${encodeURIComponent(waMessage(f))}`, '_blank');
   } else if (act === 'pay'){
     const v = prompt(`Montant du versement (reste : ${ar(reste(f))})`, reste(f));
@@ -654,6 +663,7 @@ function downloadBackup(){
 async function shareBackup(){
   const file = new File([JSON.stringify(fiches, null, 1)], backupName(), {type:'text/plain'});
   if (navigator.canShare && navigator.canShare({files:[file]})){
+    markExternal();
     try { await navigator.share({files:[file], title:'Sauvegarde carnet d’atelier'}); markBackedUp(); return; }
     catch(e){ if (e && e.name === 'AbortError') return; }
   }
@@ -764,7 +774,7 @@ $('#ghOff').addEventListener('click', () => {
 window.addEventListener('online', autoPush);
 
 document.addEventListener('visibilitychange', () => { if (!document.hidden){ snapshotMonth(); updateBanner(); autoPush(); } });
-$('#btnImport').addEventListener('click', () => $('#fileImport').click());
+$('#btnImport').addEventListener('click', () => { markExternal(); $('#fileImport').click(); });
 $('#fileImport').addEventListener('change', e => {
   const file = e.target.files[0]; if (!file) return;
   const rd = new FileReader();
@@ -826,7 +836,7 @@ function renderClient(){
       <div><dt>Déjà payé</dt><dd>${ar(c.avance)}</dd></div>
       <div><dt>Reste dû</dt><dd class="pay ${c.dette ? 'due' : 'paid'}">${c.dette ? ar(c.dette) : 'À jour'}</dd></div>
     </dl>
-    ${num ? `<a class="btn wa" href="https://wa.me/${num}" target="_blank" rel="noopener">Écrire sur WhatsApp</a><a class="btn" href="tel:+${num}">Appeler</a>` : ''}
+    ${num ? `<a class="btn wa" href="https://wa.me/${num}" target="_blank" rel="noopener">Écrire sur WhatsApp</a><button class="btn" data-cact="call">Appeler</button>` : ''}
     <button class="btn primary" data-cact="new">Nouvelle commande pour ce client</button>
     <h3 class="sec">Commandes</h3>
     ${list.map(cardHTML).join('')}`;
@@ -838,8 +848,14 @@ $('#btnClients').addEventListener('click', () => { $('#qClients').value = ''; re
 $('#qClients').addEventListener('input', renderClients);
 $('#clientsList').addEventListener('click', e => { const b = e.target.closest('[data-client]'); if (b) openClient(b.dataset.client); });
 $('#clientBody').addEventListener('click', e => {
+  if (e.target.closest('a[href^="https://wa.me"]')) markExternal();
   const card = e.target.closest('[data-id]');
   if (card) return openDetail(card.dataset.id);
+  if (e.target.closest('[data-cact="call"]')){
+    const c = getClients().find(x => x.key === currentClient);
+    if (c && c.tel) callNumber(c.tel);
+    return;
+  }
   if (e.target.closest('[data-cact="new"]')){
     const c = getClients().find(x => x.key === currentClient);
     openForm(null, c ? { nom: c.nom, tel: c.tel } : null);
@@ -972,6 +988,7 @@ $('#rcShare').addEventListener('click', async () => {
   const blob = await receiptBlob(); if (!blob) return toast('Impossible de créer le reçu');
   const file = new File([blob], receiptName(f), { type: 'image/png' });
   if (navigator.canShare && navigator.canShare({ files: [file] })){
+    markExternal();
     try { await navigator.share({ files: [file], title: 'Reçu N° ' + padNum(f.num) }); return; }
     catch(e){ if (e && e.name === 'AbortError') return; }
   }
@@ -982,10 +999,35 @@ $('#rcSave').addEventListener('click', async () => {
   const blob = await receiptBlob(); if (!blob) return toast('Impossible de créer le reçu');
   saveBlob(blob, receiptName(f)); toast('Image enregistrée dans Téléchargements');
 });
-$('#rcPrint').addEventListener('click', () => window.print());
+$('#rcPrint').addEventListener('click', () => { markExternal(); window.print(); });
 
 /* ---------- Code PIN ---------- */
-const PIN_KEY = 'carnet-atelier-pin', PIN_FAIL = 'carnet-atelier-pin-essais', LOCK_DELAY = 60000;
+const PIN_KEY = 'carnet-atelier-pin', PIN_FAIL = 'carnet-atelier-pin-essais';
+const DELAY_KEY = 'carnet-atelier-delai-verrou', ACTIVE_KEY = 'carnet-atelier-derniere-activite';
+const LOCKED_KEY = 'carnet-atelier-verrouille', EXT_KEY = 'carnet-atelier-sortie-appli';
+const EXT_GRACE = 10 * 60000;                  // retour de WhatsApp, du téléphone ou du partage : pas de verrouillage pendant 10 min
+const ls = {
+  get: k => { try { return localStorage.getItem(k); } catch(e) { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, String(v)); } catch(e) {} },
+  del: k => { try { localStorage.removeItem(k); } catch(e) {} }
+};
+const lockDelay = () => { const v = +ls.get(DELAY_KEY) || 60000; return [30000, 60000, 120000, 300000].includes(v) ? v : 60000; };
+let lastTouch = 0;
+function touchActive(force){
+  const now = Date.now();
+  if (!force && now - lastTouch < 1000) return;
+  lastTouch = now; ls.set(ACTIVE_KEY, now);
+}
+/* À appeler juste avant de quitter l'appli volontairement (WhatsApp, appel, partage, choix de fichier…) */
+function markExternal(){ ls.set(EXT_KEY, Date.now()); touchActive(true); }
+const inExternalGrace = () => { const t = +ls.get(EXT_KEY) || 0; return t > 0 && Date.now() - t <= EXT_GRACE; };
+function shouldLockAtStart(){
+  if (ls.get(LOCKED_KEY) === '1') return true;                              // l'appli avait été réduite ou laissée inactive
+  if (inExternalGrace()){ ls.del(EXT_KEY); return false; }                  // retour de WhatsApp / téléphone, même si la page a été rechargée
+  ls.del(EXT_KEY);
+  const last = +ls.get(ACTIVE_KEY) || 0;
+  return !last || Date.now() - last > lockDelay();                          // actualisation : pas de verrouillage si tu viens de toucher l'écran
+}
 const pinCfg = () => { try { return JSON.parse(localStorage.getItem(PIN_KEY) || 'null'); } catch(e) { return null; } };
 async function hashPin(pin, salt){
   const data = new TextEncoder().encode(salt + ':' + pin);
@@ -1005,9 +1047,10 @@ function showLock(msg){
   if (!pinCfg()) return;
   entry = ''; renderDots(); resetRecoveryUi();
   $('#lockMsg').textContent = msg || 'Entre ton code PIN';
+  ls.set(LOCKED_KEY, '1');
   $('#lock').hidden = false; lockables().forEach(el => { el.inert = true; });
 }
-function hideLock(){ $('#lock').hidden = true; lockables().forEach(el => { el.inert = false; }); entry = ''; }
+function hideLock(){ $('#lock').hidden = true; lockables().forEach(el => { el.inert = false; }); entry = ''; ls.del(LOCKED_KEY); ls.del(EXT_KEY); touchActive(true); }
 const failState = () => { try { return JSON.parse(localStorage.getItem(PIN_FAIL) || '{"n":0,"until":0}'); } catch(e) { return { n:0, until:0 }; } };
 function registerFail(){
   const s = failState(); s.n++; if (s.n % 5 === 0) s.until = Date.now() + 30000;
@@ -1098,8 +1141,14 @@ $('#recGo').addEventListener('click', async () => {
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden){ hiddenAt = Date.now(); }
-  else if (pinCfg() && hiddenAt && Date.now() - hiddenAt > LOCK_DELAY){ showLock(); }
+  if (!pinCfg()) return;
+  if (document.hidden){
+    if ($('#lock').hidden && !inExternalGrace()) showLock();                // appli réduite : on verrouille tout de suite
+  } else {
+    if (!$('#lock').hidden) return;                                         // déjà verrouillée
+    if (inExternalGrace()){ ls.del(EXT_KEY); touchActive(true); }           // retour de WhatsApp, du téléphone, du partage…
+    else if (Date.now() - (+ls.get(ACTIVE_KEY) || 0) > lockDelay()) showLock();
+  }
 });
 
 function renderPinUi(){
@@ -1107,6 +1156,7 @@ function renderPinUi(){
   $('#pinStatus').textContent = c ? 'Code PIN activé (' + c.len + ' chiffres).' : 'Code PIN non activé.';
   $('#recStatus').textContent = c ? (c.rhash ? 'Code de secours : en place.' : 'Code de secours : pas encore créé. Génères-en un maintenant.') : '';
   $('#pinCurWrap').hidden = !c; $('#pinOff').hidden = !c; $('#recNewBtn').hidden = !c;
+  $('#lockDelayWrap').hidden = !c; $('#lockDelay').value = String(lockDelay());
   $('#pinSet').textContent = c ? 'Changer le code PIN' : 'Activer le code PIN';
   ['#pinCur', '#pinNew', '#pinNew2'].forEach(s => { $(s).value = ''; });
 }
@@ -1123,6 +1173,7 @@ $('#pinSet').addEventListener('click', async () => {
   else { code = makeRecovery(); cfg.rsalt = newSalt(); cfg.rhash = await hashPin(normRec(code), cfg.rsalt); }
   try { localStorage.setItem(PIN_KEY, JSON.stringify(cfg)); localStorage.removeItem(PIN_FAIL); }
   catch(e) { return toast('Enregistrement impossible'); }
+  ls.del(LOCKED_KEY); touchActive(true);
   renderPinUi(); toast('Code PIN enregistré');
   if (code) showRecovery(code);
 });
@@ -1141,7 +1192,44 @@ $('#pinOff').addEventListener('click', async () => {
   renderPinUi(); toast('Code PIN désactivé');
 });
 
-if (pinCfg()) showLock();
+/* ----- Appel direct ----- */
+async function copyText(t){ try { await navigator.clipboard.writeText(t); return true; } catch(e) { return false; } }
+function callNumber(tel){
+  const n = '+' + waNumber(tel);
+  let left = false;
+  const onVis = () => { if (document.hidden) left = true; };
+  document.addEventListener('visibilitychange', onVis);
+  markExternal();
+  window.location.href = 'tel:' + n;                       // ouvre le clavier du téléphone avec le numéro déjà saisi
+  setTimeout(async () => {
+    document.removeEventListener('visibilitychange', onVis);
+    if (left) return;                                      // le téléphone s'est ouvert : rien à faire
+    toast((await copyText(n))
+      ? 'Le téléphone ne s’est pas ouvert. Numéro copié : colle-le dans le clavier d’appel.'
+      : 'Le téléphone ne s’est pas ouvert. Numéro : ' + n);
+  }, 1800);
+}
+
+/* ----- Réglage du délai de verrouillage et suivi de l'activité ----- */
+$('#lockDelay').addEventListener('change', () => {
+  try { localStorage.setItem(DELAY_KEY, $('#lockDelay').value); toast('Réglage enregistré'); } catch(e) {}
+});
+['pointerdown', 'touchstart', 'keydown', 'scroll', 'input'].forEach(ev =>
+  document.addEventListener(ev, () => {
+    if (!pinCfg() || !$('#lock').hidden) return;
+    touchActive();
+    const t = +ls.get(EXT_KEY) || 0;                       // sortie annulée (ex. partage fermé) : on n'attend pas 10 minutes
+    if (t && Date.now() - t > 1500 && !document.hidden) ls.del(EXT_KEY);
+  }, { passive: true, capture: true }));
+
+/* Inactivité : verrouillage après le délai choisi sans toucher l'écran */
+setInterval(() => {
+  if (!pinCfg() || document.hidden || !$('#lock').hidden || inExternalGrace()) return;
+  if (Date.now() - lastTouch > lockDelay()) showLock();
+}, 5000);
+
+/* Au démarrage, y compris après une actualisation de la page */
+if (pinCfg()){ if (shouldLockAtStart()) showLock(); else touchActive(true); }
 snapshotMonth();
 render();
 autoPush();
