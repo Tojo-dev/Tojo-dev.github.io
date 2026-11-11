@@ -1,0 +1,9 @@
+/* Impression du reçu. */
+/* Impression du reçu */
+@media print{
+  body>*:not(#sheetReceipt){display:none!important}
+  body{padding:0;background:#fff}
+  #sheetReceipt{position:static!important;overflow:visible;background:#fff}
+  #sheetReceipt .no-print{display:none!important}
+  #receiptCanvas{width:100%!important;height:auto!important;border:0!important}
+}
