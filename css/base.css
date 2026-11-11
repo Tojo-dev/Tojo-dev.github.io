@@ -1,0 +1,56 @@
+/* Base : variables, mise en page générale, en-tête, liste et cartes. */
+:root{
+  --ink:#1d2227; --bench:#eceeed; --card:#fbfbfa; --line:#d3d8d6; --muted:#5b666c;
+  --gold:#b98a2e; --gold-hi:#ecd183; --silver:#7f8c97; --silver-hi:#dde3e8;
+  --red:#b0382c; --green:#2a7655; --amber:#8a5a00;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bench);color:var(--ink);font:16px/1.4 system-ui,Roboto,"Segoe UI",sans-serif;padding-bottom:110px}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+/* En-tête */
+.top{background:var(--ink);color:#fff;padding:14px 16px 18px;padding-top:max(14px,env(safe-area-inset-top))}
+.top-row{display:flex;justify-content:space-between;align-items:center}
+.top h1{margin:0;font:600 18px/1.2 Georgia,"Times New Roman",serif;letter-spacing:.2px}
+.icon{width:48px;height:48px;border:0;border-radius:12px;background:#ffffff14;color:#fff;font-size:26px;line-height:1}
+.due{margin:10px 0 0;display:flex;align-items:baseline;gap:10px}
+.due span{font:600 30px/1 Georgia,serif;font-variant-numeric:tabular-nums}
+.due small{color:#b9c2c7;font-size:14px}
+
+main{padding:14px 14px 0;max-width:640px;margin:0 auto}
+#q{width:100%;min-height:48px;padding:0 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+.tabs{display:flex;gap:8px;overflow-x:auto;margin:12px -14px;padding:0 14px 4px;scrollbar-width:none}
+.tabs button{flex:none;min-height:44px;padding:0 16px;border:1.5px solid var(--line);border-radius:22px;background:#fff;color:var(--ink)}
+.tabs button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+
+/* Fiches */
+.card{display:block;width:100%;text-align:left;margin:0 0 10px;padding:14px;border:1.5px solid var(--line);border-radius:12px;background:var(--card)}
+.card:active{background:#f1f1ee}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.nom{font:600 18px/1.2 Georgia,serif}
+.lib{margin:6px 0 10px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.meta{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:13px;color:var(--muted)}
+.badge{flex:none;padding:3px 10px;border-radius:12px;font-size:13px;font-weight:600;background:#e4e8e6;color:var(--muted)}
+.badge.soon{background:#f6e7c1;color:var(--amber)}
+.badge.late{background:#f4d6d2;color:var(--red)}
+.badge.ok{background:#d3ebdf;color:var(--green)}
+.metal{display:inline-block;padding:4px 12px;border-radius:6px;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;color:#2a1f05;box-shadow:inset 0 1px 0 #ffffff99,inset 0 -2px 0 #0000001f}
+.metal.or{background:linear-gradient(135deg,var(--gold-hi),var(--gold) 55%,#d6ac4d)}
+.metal.argent{background:linear-gradient(135deg,#f4f7f9,var(--silver-hi) 40%,#aeb9c2);color:#232b31}
+.pay{font-weight:700;font-variant-numeric:tabular-nums}
+.pay.due{color:var(--red)} .pay.paid{color:var(--green)}
+.empty{padding:36px 12px;text-align:center;color:var(--muted)}
+
+.top-actions{display:flex;align-items:center;gap:8px}
+.chipbtn{min-height:44px;padding:0 16px;border:0;border-radius:12px;background:#ffffff14;color:#fff;font-weight:600}
+
+/* Chargement : rien n'est visible avant la décision d'accès */
+body.booting>header,body.booting>main,body.booting>.fab{visibility:hidden}
+.boot-error{margin:0;padding:16px;background:#f4d6d2;color:#7a1f16;white-space:pre-wrap;font:14px/1.4 ui-monospace,Menlo,Consolas,monospace}
+
+/* Fiche client */
+.client-name{margin:0 0 4px;font:600 26px Georgia,serif}
+.client-tel{margin:0 0 16px;color:var(--muted)}
