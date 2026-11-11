@@ -2,7 +2,7 @@
    Stratégie : réseau d'abord (toujours la dernière version quand il y a du réseau, avec un délai de 4 s),
    puis le cache si le réseau est absent ou trop lent.
    >>> Change VERSION à chaque mise à jour du code, pour renouveler le cache. <<< */
-const VERSION = 'v12';
+const VERSION = 'v13';
 const CACHE = 'carnet-atelier-' + VERSION;
 const TIMEOUT_MS = 4000;
 const FILES = [
