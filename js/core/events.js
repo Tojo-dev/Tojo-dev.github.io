@@ -2,7 +2,8 @@
    Événements utilisés :
    - 'fiches:changed'  les fiches ont été modifiées (la liste, le détail, les clients se réaffichent)
    - 'storage:error'   l'enregistrement dans le téléphone a échoué
-   - 'settings:open'   le panneau Réglages s'ouvre (chaque section se met à jour) */
+   - 'settings:open'   le panneau Réglages s'ouvre (chaque section se met à jour)
+   - 'session:opened'  l'utilisateur vient de se connecter (les écrans se dessinent) */
 
 const handlers = new Map();
 
