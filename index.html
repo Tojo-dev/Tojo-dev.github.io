@@ -23,6 +23,9 @@
     <div class="top-actions">
       <button class="chipbtn" id="btnClients">Clients</button>
       <button class="icon" id="btnMenu" aria-label="Réglages et sauvegarde">⋯</button>
+      <button class="icon" id="btnLogout" data-logout aria-label="Se déconnecter" title="Se déconnecter">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
     </div>
   </div>
   <p class="due"><span id="dueAmount">0 Ar</span><small>à encaisser</small></p>
@@ -119,9 +122,10 @@
 
     <h3 class="sec">Accès à l'application</h3>
     <p class="hint" id="accStatus"></p>
-    <p class="hint">L'authentification fonctionne sans internet : elle est vérifiée dans ce téléphone. Les actions de cette section demandent ton mot de passe actuel.</p>
+    <p class="hint">L'authentification fonctionne sans internet : elle est vérifiée dans ce téléphone. Tu restes connecté tant que tu ne te déconnectes pas, même si tu réduis ou fermes l'application. Les actions de cette section demandent ton mot de passe actuel.</p>
+    <button class="btn" id="accLogout" data-logout>Se déconnecter</button>
     <label class="f"><span>Mot de passe actuel</span><input class="in" id="accCur" type="password" autocomplete="current-password"></label>
-    <label class="f"><span>Nouveau mot de passe (8 caractères minimum)</span><input class="in" id="accNew" type="password" autocomplete="new-password"></label>
+    <label class="f"><span>Nouveau mot de passe (4 caractères minimum)</span><input class="in" id="accNew" type="password" autocomplete="new-password"></label>
     <label class="f"><span>Confirmer le nouveau mot de passe</span><input class="in" id="accNew2" type="password" autocomplete="new-password"></label>
     <button class="btn primary" id="accChange">Changer le mot de passe</button>
     <button class="btn" id="accRecNew">Générer un nouveau code de secours</button>
@@ -129,22 +133,11 @@
 
     <h3 class="sec">Code PIN rapide (facultatif)</h3>
     <p class="hint" id="pinStatus"></p>
-    <p class="hint">Le code PIN évite de retaper le mot de passe après un verrouillage. Le mot de passe est redemandé 12 heures après la dernière connexion.</p>
+    <p class="hint">Le code PIN permet de te reconnecter plus vite après une déconnexion. Le mot de passe reste toujours possible.</p>
     <label class="f"><span>Nouveau code PIN (4 à 6 chiffres)</span><input class="in" id="pinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
     <label class="f"><span>Confirmer le code PIN</span><input class="in" id="pinNew2" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
     <button class="btn primary" id="pinSet">Activer le code PIN</button>
     <button class="btn danger" id="pinOff" hidden>Désactiver le code PIN</button>
-
-    <h3 class="sec">Verrouillage automatique</h3>
-    <p class="hint">L'appli se verrouille après un moment sans toucher l'écran, et dès que tu la réduis. Elle ne se verrouille pas quand tu pars vers WhatsApp, le téléphone ou le partage depuis l'appli, ni quand tu actualises la page.</p>
-    <label class="f"><span>Verrouiller après une inactivité de</span>
-      <select class="in" id="lockDelay">
-        <option value="30000">30 secondes</option>
-        <option value="60000">1 minute</option>
-        <option value="120000">2 minutes</option>
-        <option value="300000">5 minutes</option>
-      </select>
-    </label>
 
     <h3 class="sec">Sauvegarde des fiches</h3>
     <p>Les fiches sont enregistrées dans ce téléphone. Une sauvegarde est un fichier nommé par mois, par exemple <strong>sauvegarde_novembre_2026.json</strong>, rangé dans les Téléchargements. Garde-en une copie ailleurs (WhatsApp, Drive, ordinateur).</p>
@@ -232,7 +225,7 @@
     <h2>Crée ton accès</h2>
     <p id="setupMsg" role="status"></p>
     <label class="f"><span>Identifiant (3 caractères minimum)</span><input class="in" id="setupUser" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
-    <label class="f"><span>Mot de passe (8 caractères minimum)</span><input class="in" id="setupPass" type="password" autocomplete="new-password" required></label>
+    <label class="f"><span>Mot de passe (4 caractères minimum)</span><input class="in" id="setupPass" type="password" autocomplete="new-password" required></label>
     <label class="f"><span>Confirmer le mot de passe</span><input class="in" id="setupPass2" type="password" autocomplete="new-password" required></label>
     <button class="btn primary" type="submit" id="setupGo">Créer mon accès</button>
   </form>
@@ -242,7 +235,7 @@
     <p id="recoverMsg" role="status"></p>
     <label class="f" id="recCodeWrap"><span>Code de secours</span><input class="in" id="recCode" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX"></label>
     <div id="recNewWrap" hidden>
-      <label class="f"><span>Nouveau mot de passe (8 caractères minimum)</span><input class="in" id="recPass" type="password" autocomplete="new-password"></label>
+      <label class="f"><span>Nouveau mot de passe (4 caractères minimum)</span><input class="in" id="recPass" type="password" autocomplete="new-password"></label>
       <label class="f"><span>Confirmer le nouveau mot de passe</span><input class="in" id="recPass2" type="password" autocomplete="new-password"></label>
     </div>
     <button class="btn primary" type="submit" id="recGo">Continuer</button>

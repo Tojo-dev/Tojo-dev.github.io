@@ -23,7 +23,7 @@ js/
   domain/               Règles métier : fiches, clients, téléphone, messages
   ui/                   Éléments d'interface partagés : toast, panneaux empilés
   features/             Écrans : list, form, detail, clients-ui, receipt, call, backup, github-backup, atelier, settings
-  auth/                 Authentification locale : crypto, store, service, session, screens, gate, settings-ui
+  auth/                 Authentification locale : crypto, store, service, session (connecté ou non), screens, gate (connexion, déconnexion), settings-ui
 ```
 
 ## Conventions
@@ -36,12 +36,13 @@ js/
 
 ## Authentification (hors-ligne)
 
-- Identifiant + mot de passe créés à la première ouverture. Seule une empreinte PBKDF2-SHA256 (150 000 itérations, sel aléatoire) est conservée.
+- Identifiant + mot de passe (4 caractères minimum) créés à la première ouverture. Seule une empreinte PBKDF2-SHA256 (150 000 itérations, sel aléatoire) est conservée.
+- **Session persistante** : l'utilisateur reste connecté tant qu'il ne se déconnecte pas, même si l'application est réduite, fermée, actualisée ou le téléphone redémarré. Il n'y a aucun verrouillage automatique.
+- **Déconnexion** : bouton dans l'en-tête et dans les Réglages. La page est rechargée pour effacer tout ce qui était affiché, puis la page de connexion s'affiche. Aucune donnée n'est dessinée tant que personne n'est connecté.
 - Code de secours à usage unique (60 bits) pour choisir un nouveau mot de passe ; affiché une seule fois.
-- Code PIN rapide facultatif, accepté 12 h après la dernière connexion par mot de passe.
+- Code PIN facultatif, proposé à la place du mot de passe à chaque connexion.
 - Limitation des essais : 5 erreurs = 30 s, 10 = 2 min, 15 = 8 min, jusqu'à 30 min.
-- Verrouillage : après 1 minute (réglable) sans toucher l'écran, ou quand l'application est réduite. Pas de verrouillage après une actualisation de la page ni au retour de WhatsApp, du téléphone ou du partage lancés depuis l'application.
-- Limite : c'est une protection de l'interface. Les fiches ne sont pas chiffrées dans le stockage du navigateur.
+- Limites : c'est une protection de l'interface. Les fiches ne sont pas chiffrées dans le stockage du navigateur, et un mot de passe court se devine plus facilement. L'écran de verrouillage du téléphone reste la première protection.
 
 ## Lancer en local
 
