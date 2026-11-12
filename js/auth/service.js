@@ -1,6 +1,6 @@
 /* Authentification locale, sans serveur ni internet : la vérification se fait dans le téléphone. */
 
-import { LOCK, PBKDF2_ITERATIONS } from '../config.js';
+import { PBKDF2_ITERATIONS } from '../config.js';
 import {
   getAccount, saveAccount, getPin, savePin, clearPin,
   registerFail, clearFails, waitSeconds
@@ -8,7 +8,7 @@ import {
 import { pbkdf2, sha256Pin, randomHex, makeRecovery, normRec } from './crypto.js';
 
 export { waitSeconds, normRec };
-export const MIN_PASSWORD = 8;
+export const MIN_PASSWORD = 4;
 
 export const account = getAccount;
 export const hasAccount = () => !!getAccount();
@@ -133,8 +133,5 @@ export async function verifyPin(pin){
   return ok;
 }
 
-/** Le PIN rapide n'est accepté que peu de temps après une connexion par mot de passe. */
-export function quickAllowed(){
-  const acc = getAccount();
-  return !!getPin() && !!acc && Date.now() - (acc.loginAt || 0) < LOCK.quickPinMaxAge;
-}
+/** Si un code PIN existe, il est proposé à chaque connexion (le mot de passe reste toujours possible). */
+export const quickAllowed = () => !!getPin() && !!getAccount();

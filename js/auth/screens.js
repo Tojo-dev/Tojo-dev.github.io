@@ -1,8 +1,6 @@
 /* Écrans d'accès : code PIN, connexion, création de l'accès, mot de passe oublié, code de secours. */
 
 import { $, $$ } from '../core/dom.js';
-import { ls } from '../core/storage.js';
-import { KEYS } from '../config.js';
 import * as auth from './service.js';
 
 const VIEWS = ['pin', 'login', 'setup', 'recover'];
@@ -29,7 +27,6 @@ export function showGate(view, msg){
   $$('.toast').forEach(t => t.remove());      // aucun message de l'application ne doit rester visible sur l'écran verrouillé
   $('#gate').hidden = false;
   lockables().forEach(el => { el.inert = true; });
-  ls.set(KEYS.locked, '1');
   showView(view, msg);
 }
 export function concealGate(){ $('#gate').hidden = true; }

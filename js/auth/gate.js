@@ -1,77 +1,41 @@
-/* Barrière d'accès : décide quand afficher l'écran de connexion (démarrage, inactivité, application réduite). */
+/* Barrière d'accès : la page de connexion s'affiche à la première utilisation et après une déconnexion.
+   Tant que l'utilisateur ne se déconnecte pas, la session reste ouverte (application réduite, fermée ou actualisée). */
 
+import { $$ } from '../core/dom.js';
+import { emit } from '../core/events.js';
 import { getAccount, getPin } from './store.js';
 import { quickAllowed } from './service.js';
-import { showGate, releaseGate, isGateOpen, setOnSuccess, initScreens } from './screens.js';
-import {
-  touchActive, idleMs, lastActive, lockDelay, inExternalGrace, clearExternal,
-  dropStaleExternal, clearLockFlags, shouldLockAtStart
-} from './session.js';
+import { showGate, releaseGate, setOnSuccess, initScreens } from './screens.js';
+import { isLoggedIn, openSession, closeSession } from './session.js';
 
-/** Quel écran afficher ? PIN rapide si autorisé, sinon identifiant + mot de passe. */
+/** Quel écran afficher ? PIN rapide s'il existe, sinon identifiant + mot de passe. */
 function chooseView(){
   if (!getAccount()) return getPin() ? 'pin' : 'setup';   // ancien code PIN seul : il garde l'accès jusqu'à la création du compte
   return quickAllowed() ? 'pin' : 'login';
 }
 
-export function lockNow(){
-  if (!isGateOpen()) showGate(chooseView());
-}
-
 export function unlockApp(){
   if (!getAccount()){ showGate('setup'); return; }        // l'accès par identifiant est obligatoire
+  openSession();
   releaseGate();
-  clearLockFlags();
-  touchActive(true);
+  emit('session:opened');                                  // les écrans se dessinent seulement maintenant
 }
 
-/** Au démarrage de la page (y compris après une actualisation). */
+/** Au démarrage de la page (y compris après une actualisation ou une réouverture). */
 export function startGate(){
   if (!getAccount()){ showGate(getPin() ? 'pin' : 'setup'); return; }
-  if (shouldLockAtStart()) showGate(chooseView());
-  else touchActive(true);
+  if (!isLoggedIn()) showGate(chooseView());
+}
+
+/** Déconnexion : on recharge la page pour effacer tout ce qui était affiché (fiches, reçus, clients…). */
+export function logout(){
+  if (!confirm('Se déconnecter ? Il faudra ressaisir ton accès pour rouvrir l’application.')) return;
+  closeSession();
+  location.reload();
 }
 
 export function initGate(){
   initScreens();
   setOnSuccess(unlockApp);
-
-  // Activité : chaque toucher repousse le verrouillage
-  ['pointerdown', 'touchstart', 'keydown', 'scroll', 'input'].forEach(ev =>
-    document.addEventListener(ev, () => {
-      if (isGateOpen()) return;
-      touchActive();
-      dropStaleExternal();
-    }, { passive: true, capture: true }));
-
-  // Application réduite : verrouillage immédiat (sauf départ volontaire vers WhatsApp, le téléphone…).
-  // Lors d'une actualisation, le navigateur signale aussi la page comme « masquée » juste avant de la décharger :
-  // ce n'est pas une réduction. On attend donc un instant, et on ignore le cas où la page se décharge ('pagehide').
-  let unloading = false;
-  window.addEventListener('pagehide', () => { unloading = true; });
-  window.addEventListener('pageshow', () => { unloading = false; });
-
-  let hiddenAt = 0;                 // gardé en mémoire seulement : une actualisation l'efface, donc ne verrouille pas
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden){
-      hiddenAt = Date.now();
-      setTimeout(() => {
-        if (document.hidden && !unloading && !isGateOpen() && !inExternalGrace()) lockNow();
-      }, 0);
-      return;
-    }
-    const wasHidden = hiddenAt;
-    hiddenAt = 0;
-    if (isGateOpen()) return;
-    if (inExternalGrace()){ clearExternal(); touchActive(true); return; }
-    // réduite puis rouverte : on verrouille même si le minuteur n'a pas eu le temps de s'exécuter
-    if (wasHidden || Date.now() - lastActive() > lockDelay()) lockNow();
-  });
-
-  // Inactivité : verrouillage après le délai choisi sans toucher l'écran
-  setInterval(() => {
-    if (document.hidden || isGateOpen() || inExternalGrace()) return;
-    if (idleMs() > lockDelay()) lockNow();
-  }, 5000);
+  $$('[data-logout]').forEach(b => b.addEventListener('click', logout));
 }

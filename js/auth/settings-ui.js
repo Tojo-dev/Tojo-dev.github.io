@@ -1,13 +1,10 @@
 /* Réglages d'accès : mot de passe, code de secours, code PIN rapide, délai de verrouillage. */
 
 import { $ } from '../core/dom.js';
-import { KEYS } from '../config.js';
-import { ls } from '../core/storage.js';
 import { on } from '../core/events.js';
 import { toast } from '../ui/toast.js';
 import * as auth from './service.js';
 import { showRecovery } from './screens.js';
-import { lockDelay } from './session.js';
 
 function render(){
   const acc = auth.account();
@@ -17,7 +14,6 @@ function render(){
   $('#pinStatus').textContent = hasPin ? `Code PIN activé (${auth.pinLength()} chiffres).` : 'Code PIN non activé.';
   $('#pinSet').textContent = hasPin ? 'Changer le code PIN' : 'Activer le code PIN';
   $('#pinOff').hidden = !hasPin;
-  $('#lockDelay').value = String(lockDelay());
   ['#accCur', '#accNew', '#accNew2', '#pinNew', '#pinNew2'].forEach(s => { $(s).value = ''; });
 }
 
@@ -78,8 +74,4 @@ export function initAccessSettings(){
   $('#accRecNew').addEventListener('click', newRecoveryCode);
   $('#pinSet').addEventListener('click', setPin);
   $('#pinOff').addEventListener('click', removePin);
-  $('#lockDelay').addEventListener('change', () => {
-    ls.set(KEYS.lockDelay, $('#lockDelay').value);
-    toast('Réglage enregistré');
-  });
 }
