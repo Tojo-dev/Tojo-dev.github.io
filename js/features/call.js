@@ -2,7 +2,6 @@
 
 import { waNumber } from '../domain/phone.js';
 import { toast } from '../ui/toast.js';
-import { markExternal } from '../auth/session.js';
 
 async function copyText(text){
   try { await navigator.clipboard.writeText(text); return true; } catch (e) { return false; }
@@ -13,7 +12,6 @@ export function callNumber(tel){
   let left = false;
   const onVis = () => { if (document.hidden) left = true; };
   document.addEventListener('visibilitychange', onVis);
-  markExternal();
   window.location.href = 'tel:' + n;
   setTimeout(async () => {
     document.removeEventListener('visibilitychange', onVis);

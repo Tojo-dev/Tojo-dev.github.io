@@ -6,7 +6,6 @@ import { ar } from '../core/format.js';
 import { getClients } from '../domain/clients.js';
 import { waNumber } from '../domain/phone.js';
 import { openSheet, isOpen } from '../ui/sheets.js';
-import { markExternal } from '../auth/session.js';
 import { cardHTML } from './list.js';
 import { openDetail } from './detail.js';
 import { openForm } from './form.js';
@@ -52,7 +51,6 @@ export function openClient(key){
 }
 
 function onClientBodyClick(e){
-  if (e.target.closest('a[href^="https://wa.me"]')) markExternal();
   const card = e.target.closest('[data-id]');
   if (card) return openDetail(card.dataset.id);
   const c = getClients().find(x => x.key === currentClient);

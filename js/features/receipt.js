@@ -5,7 +5,6 @@ import { ar, gr, fdate, padNum, slug } from '../core/format.js';
 import { findFiche, reste, atelierG } from '../domain/fiches.js';
 import { openSheet } from '../ui/sheets.js';
 import { toast } from '../ui/toast.js';
-import { markExternal } from '../auth/session.js';
 import { getReg } from './atelier.js';
 
 let receiptId = null;
@@ -128,7 +127,6 @@ async function share(){
   if (!blob) return toast('Impossible de créer le reçu');
   const file = new File([blob], receiptName(f), { type: 'image/png' });
   if (navigator.canShare && navigator.canShare({ files: [file] })){
-    markExternal();
     try { await navigator.share({ files: [file], title: 'Reçu N° ' + padNum(f.num) }); return; }
     catch (e) { if (e && e.name === 'AbortError') return; }
   }
@@ -148,5 +146,5 @@ async function save(){
 export function initReceipt(){
   $('#rcShare').addEventListener('click', share);
   $('#rcSave').addEventListener('click', save);
-  $('#rcPrint').addEventListener('click', () => { markExternal(); window.print(); });
+  $('#rcPrint').addEventListener('click', () => window.print());
 }

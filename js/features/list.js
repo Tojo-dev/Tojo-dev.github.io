@@ -64,4 +64,5 @@ export function initList(){
     if (c) openDetail(c.dataset.id);
   });
   on('fiches:changed', renderList);
+  on('session:opened', renderList);
 }

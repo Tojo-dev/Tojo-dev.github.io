@@ -8,7 +8,6 @@ import { MOIS_FR, monthKey, backupName } from '../core/format.js';
 import { state, replaceAll } from '../domain/fiches.js';
 import { closeTop } from '../ui/sheets.js';
 import { toast } from '../ui/toast.js';
-import { markExternal } from '../auth/session.js';
 
 let bannerDismissed = false;
 
@@ -42,7 +41,6 @@ export function downloadBackup(){
 async function shareBackup(){
   const file = new File([backupJson()], backupName(), { type: 'text/plain' });
   if (navigator.canShare && navigator.canShare({ files: [file] })){
-    markExternal();
     try { await navigator.share({ files: [file], title: 'Sauvegarde carnet d’atelier' }); markBackedUp(); return; }
     catch (e) { if (e && e.name === 'AbortError') return; }
   }
@@ -108,7 +106,7 @@ export function initBackup(){
   $('#bannerSave').addEventListener('click', downloadBackup);
   $('#bannerLater').addEventListener('click', () => { bannerDismissed = true; updateBanner(); });
   $('#snapList').addEventListener('click', onSnapClick);
-  $('#btnImport').addEventListener('click', () => { markExternal(); $('#fileImport').click(); });
+  $('#btnImport').addEventListener('click', () => $('#fileImport').click());
   $('#fileImport').addEventListener('change', onImportFile);
   document.addEventListener('visibilitychange', () => { if (!document.hidden){ snapshotMonth(); updateBanner(); } });
   updateBanner();

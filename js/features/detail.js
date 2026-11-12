@@ -10,7 +10,6 @@ import { waNumber } from '../domain/phone.js';
 import { waMessage } from '../domain/messages.js';
 import { openSheet, closeTop, isOpen } from '../ui/sheets.js';
 import { toast } from '../ui/toast.js';
-import { markExternal } from '../auth/session.js';
 import { openForm } from './form.js';
 import { openReceipt } from './receipt.js';
 import { openClient } from './clients-ui.js';
@@ -63,7 +62,6 @@ function onAction(e){
 
   if (act === 'wa'){
     if (!f.tel) return toast("Ajoute d'abord le numéro du client");
-    markExternal();
     window.open(`https://wa.me/${waNumber(f.tel)}?text=${encodeURIComponent(waMessage(f))}`, '_blank');
   } else if (act === 'pay'){
     const v = prompt(`Montant du versement (reste : ${ar(reste(f))})`, String(reste(f)));
