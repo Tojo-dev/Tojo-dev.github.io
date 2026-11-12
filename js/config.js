@@ -13,17 +13,7 @@ export const KEYS = {
   account:    'carnet-atelier-compte',
   pin:        'carnet-atelier-pin',
   fails:      'carnet-atelier-essais',
-  lockDelay:  'carnet-atelier-delai-verrou',
-  lastActive: 'carnet-atelier-derniere-activite',
-  locked:     'carnet-atelier-verrouille',
-  external:   'carnet-atelier-sortie-appli'
-};
-
-export const LOCK = {
-  defaultDelay: 60000,                       // verrouillage après 1 minute sans toucher l'écran
-  delays: [30000, 60000, 120000, 300000],    // choix proposés dans les réglages
-  externalGrace: 10 * 60000,                 // retour de WhatsApp / téléphone / partage : pas de verrouillage pendant 10 min
-  quickPinMaxAge: 12 * 3600000               // le code PIN rapide n'est accepté que 12 h après la dernière connexion
+  session:    'carnet-atelier-session'
 };
 
 export const PBKDF2_ITERATIONS = 150000;

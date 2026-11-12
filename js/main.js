@@ -14,6 +14,7 @@ import { initAtelier } from './features/atelier.js';
 import { initSettings } from './features/settings.js';
 import { initAccessSettings } from './auth/settings-ui.js';
 import { initGate, startGate } from './auth/gate.js';
+import { isLoggedIn } from './auth/session.js';
 import { registerServiceWorker } from './pwa.js';
 
 function boot(){
@@ -35,7 +36,7 @@ function boot(){
 
   startGate();            // affiche la page d'accès si nécessaire, avant tout le reste
   snapshotMonth();
-  renderList();
+  if (isLoggedIn()) renderList();     // rien n'est dessiné tant que personne n'est connecté
   autoPush();
 
   document.body.classList.remove('booting');
